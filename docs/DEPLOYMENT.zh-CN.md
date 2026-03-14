@@ -429,6 +429,8 @@ curl -X POST http://localhost:19091/api/conversation/message \
 BASE_URL=http://localhost:19091/api bash chatbi-server/scripts/smoke-test.sh
 ```
 
+> 提示：如果刚执行过 `restart api/web`，请先确认 `docker compose --env-file chatbi-server/.env.compose -f chatbi-server/docker-compose.yml ps` 中 `api` 与 `web` 均为 `(healthy)`，再执行冒烟；否则可能因 `health: starting` 出现短暂失败。
+
 ### 8.6 页面访问验证
 
 浏览器访问：
@@ -576,6 +578,14 @@ docker logs -f chatbi-local-redis
 docker compose --env-file chatbi-server/.env.compose -f chatbi-server/docker-compose.yml restart api
 docker compose --env-file chatbi-server/.env.compose -f chatbi-server/docker-compose.yml restart web
 ```
+
+重启后建议先验活：
+
+```bash
+docker compose --env-file chatbi-server/.env.compose -f chatbi-server/docker-compose.yml ps
+```
+
+确认 `api` 和 `web` 都显示 `(healthy)` 后再执行 API 冒烟测试。
 
 ### 停止服务
 

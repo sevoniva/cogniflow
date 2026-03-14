@@ -32,3 +32,4 @@ npm run quality:gate
 ## Notes
 
 - Detailed operations (backup, rollback, drill, troubleshooting) are documented in [DEPLOYMENT.zh-CN.md](./DEPLOYMENT.zh-CN.md).
+- After restarting `api` or `web`, wait until both services show `(healthy)` in `docker compose --env-file chatbi-server/.env.compose -f chatbi-server/docker-compose.yml ps` before running smoke tests. Immediate smoke checks may fail while status is `health: starting`.

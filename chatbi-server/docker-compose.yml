@@ -1,0 +1,122 @@
+services:
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: chatbi-local-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ChatBI@2026}
+      MYSQL_DATABASE: ${DB_NAME:-chatbi}
+      MYSQL_USER: ${DB_USERNAME:-chatbi}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-ChatBI@2026}
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "${CHATBI_DB_HOST_PORT:-3306}:3306"
+    networks:
+      - chatbi-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-ChatBI@2026}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: chatbi-local-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-ChatBI@2026}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${CHATBI_REDIS_HOST_PORT:-6379}:6379"
+    networks:
+      - chatbi-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-ChatBI@2026}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # 后端服务
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chatbi-local-api
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES:-dev}
+      SERVER_PORT: ${SERVER_PORT:-8081}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-chatbi}
+      DB_USERNAME: ${DB_USERNAME:-chatbi}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-ChatBI@2026}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-ChatBI@2026}
+      JWT_SECRET: ${JWT_SECRET:-chatbi-enterprise-secret-key-min-256-bit-for-jwt-signing}
+      PASSWORD_SALT: ${PASSWORD_SALT:-chatbi-salt-2026}
+      CHATBI_AI_ENABLED: ${CHATBI_AI_ENABLED:-false}
+      KIMI_ENABLED: ${KIMI_ENABLED:-false}
+      KIMI_API_KEY: ${KIMI_API_KEY:-}
+      OPENAI_ENABLED: ${OPENAI_ENABLED:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      QWEN_ENABLED: ${QWEN_ENABLED:-false}
+      QWEN_API_KEY: ${QWEN_API_KEY:-}
+      BAILIAN_ENABLED: ${BAILIAN_ENABLED:-false}
+      BAILIAN_API_KEY: ${BAILIAN_API_KEY:-}
+      MINIMAX_ENABLED: ${MINIMAX_ENABLED:-false}
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
+      GENERIC_ENABLED: ${GENERIC_ENABLED:-false}
+      GENERIC_API_KEY: ${GENERIC_API_KEY:-}
+      GENERIC_API_URL: ${GENERIC_API_URL:-https://your-api-endpoint.com/v1/chat/completions}
+      GENERIC_MODEL: ${GENERIC_MODEL:-gpt-3.5-turbo}
+      LOG_FILE_PATH: ${LOG_FILE_PATH:-/app/logs/chatbi.log}
+      JAVA_OPTS: "${JAVA_OPTS:--Xms512m -Xmx2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs}"
+    ports:
+      - "${CHATBI_API_HOST_PORT:-8081}:8081"
+    networks:
+      - chatbi-network
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # 前端服务 (可选，生产环境建议使用 Nginx)
+  web:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: chatbi-local-web
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      VITE_API_BASE_URL: /api
+    ports:
+      - "${CHATBI_WEB_HOST_PORT:-8080}:8080"
+    networks:
+      - chatbi-network
+    restart: unless-stopped
+
+networks:
+  chatbi-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:

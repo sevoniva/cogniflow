@@ -1,0 +1,108 @@
+/**
+ * Chat BI 全局视觉规范
+ * 
+ * 本文件定义统一的设计令牌（Design Tokens）
+ * 所有页面应遵循此规范，保持视觉一致性
+ */
+
+:root {
+  /* ==================== 色彩系统 ==================== */
+
+  /* 主色 */
+  --cb-primary: #2f6bff;
+  --cb-primary-light: #eaf1ff;
+  --cb-primary-dark: #1f4fc5;
+  --cb-info: #3f8cff;
+  --cb-info-light: #eef5ff;
+  --cb-accent: #14b8a6;
+  --cb-accent-light: #e8fbf8;
+  --cb-indigo: #344a7f;
+  --cb-navy: #182848;
+  
+  /* 成功/警告/危险 */
+  --cb-success: #67c23a;
+  --cb-success-light: #f0f9eb;
+  --cb-warning: #e6a23c;
+  --cb-warning-light: #fdf6ec;
+  --cb-danger: #f56c6c;
+  --cb-danger-light: #fef0f0;
+  
+  /* 中性色 - 文字 */
+  --cb-text-primary: #303133;
+  --cb-text-regular: #606266;
+  --cb-text-secondary: #909399;
+  --cb-text-placeholder: #a8abb2;
+  
+  /* 中性色 - 边框和分割线 */
+  --cb-border-base: #dcdfe6;
+  --cb-border-light: #e4e7ed;
+  --cb-border-lighter: #ebeef5;
+  --cb-border-extra-light: #f2f6fc;
+  
+  /* 中性色 - 背景 */
+  --cb-bg-page: #f3f6fb;
+  --cb-bg-card: rgba(255, 255, 255, 0.92);
+  --cb-bg-card-strong: #ffffff;
+  --cb-bg-hover: #f6f9ff;
+  --cb-bg-active: #ecf3ff;
+  --cb-bg-dark-panel: linear-gradient(135deg, #182848 0%, #23395d 100%);
+  --cb-bg-hero: radial-gradient(circle at top left, rgba(47, 107, 255, 0.16), transparent 32%), linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+  
+  /* 管理侧专用 */
+  --cb-admin-sidebar: #304156;
+  --cb-admin-sidebar-text: #bfcbd9;
+  
+  /* ==================== 间距系统 ==================== */
+  
+  --cb-space-xs: 4px;
+  --cb-space-sm: 8px;
+  --cb-space-md: 16px;
+  --cb-space-lg: 24px;
+  --cb-space-xl: 32px;
+  --cb-space-xxl: 48px;
+  
+  /* ==================== 尺寸系统 ==================== */
+  
+  /* 圆角 */
+  --cb-radius-sm: 6px;
+  --cb-radius-md: 8px;
+  --cb-radius-lg: 12px;
+  --cb-radius-xl: 18px;
+  --cb-radius-2xl: 24px;
+  
+  /* 阴影 */
+  --cb-shadow-sm: 0 10px 30px rgba(15, 23, 42, 0.06);
+  --cb-shadow-md: 0 18px 45px rgba(15, 23, 42, 0.1);
+  --cb-shadow-lg: 0 28px 70px rgba(15, 23, 42, 0.14);
+  --cb-shadow-focus: 0 0 0 4px rgba(47, 107, 255, 0.12);
+  
+  /* ==================== 字体系统 ==================== */
+  
+  --cb-font-family: "DIN Alternate", "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+  
+  /* 字号 */
+  --cb-font-size-xs: 12px;
+  --cb-font-size-sm: 13px;
+  --cb-font-size-md: 14px;
+  --cb-font-size-lg: 16px;
+  --cb-font-size-xl: 18px;
+  --cb-font-size-xxl: 20px;
+  
+  /* 字重 */
+  --cb-font-weight-normal: 400;
+  --cb-font-weight-medium: 500;
+  --cb-font-weight-bold: 600;
+  
+  /* ==================== 布局系统 ==================== */
+  
+  /* 用户侧内容区 */
+  --cb-user-max-width: 720px;
+  --cb-user-wide-max-width: 960px;
+  
+  /* 管理侧内容区 */
+  --cb-admin-max-width: 1200px;
+  
+  /* 头部高度 */
+  --cb-header-height: 72px;
+  --cb-admin-sidebar-width: 210px;
+}

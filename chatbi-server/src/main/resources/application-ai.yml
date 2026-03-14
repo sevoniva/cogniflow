@@ -1,0 +1,85 @@
+# AI模型配置示例
+chatbi:
+  ai:
+    # 是否启用AI功能
+    enabled: ${CHATBI_AI_ENABLED:false}
+    # 默认使用的模型提供商
+    default-provider: kimi
+    # 请求超时时间（秒）
+    timeout: 30
+    # 最大重试次数
+    max-retries: 3
+
+    # 模型提供商配置
+    providers:
+      # OpenAI
+      openai:
+        name: OpenAI
+        api-url: https://api.openai.com/v1
+        api-key: ${OPENAI_API_KEY:}
+        model: gpt-4
+        temperature: 0.7
+        max-tokens: 2000
+        enabled: ${OPENAI_ENABLED:false}
+
+      # Kimi (Moonshot)
+      kimi:
+        name: Kimi
+        api-url: https://api.moonshot.cn/v1
+        api-key: ${KIMI_API_KEY:}
+        model: moonshot-v1-32k
+        temperature: 0.7
+        max-tokens: 2000
+        enabled: ${KIMI_ENABLED:false}
+
+      # 阿里云百炼
+      bailian:
+        name: 阿里云百炼
+        api-url: https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation
+        api-key: ${BAILIAN_API_KEY:}
+        model: qwen-max
+        temperature: 0.7
+        max-tokens: 2000
+        enabled: ${BAILIAN_ENABLED:false}
+
+      # MiniMax
+      minimax:
+        name: MiniMax
+        api-url: https://api.minimax.chat/v1/text/chatcompletion_v2
+        api-key: ${MINIMAX_API_KEY:}
+        model: abab5.5-chat
+        temperature: 0.7
+        max-tokens: 2000
+        enabled: ${MINIMAX_ENABLED:false}
+
+      # 通义千问（使用百炼平台）
+      qwen:
+        name: 通义千问
+        api-url: https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation
+        api-key: ${QWEN_API_KEY:}
+        model: qwen-turbo
+        temperature: 0.7
+        max-tokens: 2000
+        enabled: ${QWEN_ENABLED:false}
+
+      # 通用API（兼容OpenAI格式）
+      generic:
+        name: 通用API
+        api-url: ${GENERIC_API_URL:https://your-api-endpoint.com/v1/chat/completions}
+        api-key: ${GENERIC_API_KEY:}
+        model: ${GENERIC_MODEL:gpt-3.5-turbo}
+        temperature: 0.7
+        max-tokens: 2000
+        enabled: ${GENERIC_ENABLED:false}
+        extra-params:
+          # 可以添加额外的参数
+          stream: false
+
+# 敏捷研发数据源配置
+spring:
+  datasource:
+    agile:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3307/chatbi_agile?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+      username: chatbi
+      password: chatbi123456

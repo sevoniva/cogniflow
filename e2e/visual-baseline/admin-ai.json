@@ -1,0 +1,45 @@
+{
+  "name": "admin-ai",
+  "path": "/admin/ai",
+  "title": "AI 设置 - Chat BI",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "bodyMetrics": {
+    "scrollWidth": 1440,
+    "scrollHeight": 2965
+  },
+  "selectors": [
+    {
+      "selector": ".ai-admin-page",
+      "exists": true,
+      "rect": {
+        "x": 332,
+        "y": 257,
+        "width": 1076,
+        "height": 2676
+      }
+    },
+    {
+      "selector": ".hero-grid",
+      "exists": true,
+      "rect": {
+        "x": 332,
+        "y": 257,
+        "width": 1076,
+        "height": 743
+      }
+    },
+    {
+      "selector": ".runtime-panel",
+      "exists": true,
+      "rect": {
+        "x": 365,
+        "y": 582,
+        "width": 574,
+        "height": 124
+      }
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "home",
+  "path": "/",
+  "title": "首页 - Chat BI",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "bodyMetrics": {
+    "scrollWidth": 1440,
+    "scrollHeight": 2502
+  },
+  "selectors": [
+    {
+      "selector": ".home-page",
+      "exists": true,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 2502
+      }
+    },
+    {
+      "selector": ".search-box",
+      "exists": true,
+      "rect": {
+        "x": 320,
+        "y": 258,
+        "width": 800,
+        "height": 40
+      }
+    },
+    {
+      "selector": ".hero-title",
+      "exists": true,
+      "rect": {
+        "x": 80,
+        "y": 100,
+        "width": 1280,
+        "height": 72
+      }
+    },
+    {
+      "selector": ".hero-subtitle",
+      "exists": true,
+      "rect": {
+        "x": 80,
+        "y": 188,
+        "width": 1280,
+        "height": 30
+      }
+    }
+  ]
+}

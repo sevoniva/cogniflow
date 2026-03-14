@@ -1,0 +1,13 @@
+.git
+.gitignore
+.codex-artifacts
+node_modules
+dist
+coverage
+test-results
+playwright-report
+chatbi-server
+mysql-data
+*.log
+README 2.md
+docs/TEST_REPORT 2.md

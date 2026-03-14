@@ -1,0 +1,45 @@
+{
+  "name": "admin-permission",
+  "path": "/admin/permission",
+  "title": "权限配置 - Chat BI",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "bodyMetrics": {
+    "scrollWidth": 1440,
+    "scrollHeight": 1937
+  },
+  "selectors": [
+    {
+      "selector": ".permission-page",
+      "exists": true,
+      "rect": {
+        "x": 332,
+        "y": 257,
+        "width": 1076,
+        "height": 1648
+      }
+    },
+    {
+      "selector": ".hero-card",
+      "exists": true,
+      "rect": {
+        "x": 332,
+        "y": 257,
+        "width": 1076,
+        "height": 209
+      }
+    },
+    {
+      "selector": ".panel-card",
+      "exists": true,
+      "rect": {
+        "x": 332,
+        "y": 750,
+        "width": 631,
+        "height": 423
+      }
+    }
+  ]
+}

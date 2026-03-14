@@ -1,0 +1,195 @@
+server:
+  port: ${SERVER_PORT:8081}
+  servlet:
+    context-path: /
+    encoding:
+      charset: UTF-8
+      force: true
+    jsp:
+      enabled: false
+
+spring:
+  application:
+    name: chatbi-server
+
+  # 多环境配置
+  profiles:
+    active: dev
+    include: ai
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfiguration
+
+  # Jackson 配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+  # Servlet 配置
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.chatbi: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{36}) - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/chatbi.log
+    max-size: 100MB
+    max-history: 30
+
+# 管理端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    export:
+      prometheus:
+        enabled: true
+  health:
+    redis:
+      enabled: false
+    ldap:
+      enabled: false
+    mail:
+      enabled: false
+  info:
+    env:
+      enabled: true
+
+# 应用配置
+app:
+  redis:
+    enabled: ${CHATBI_REDIS_ENABLED:false}
+  jwt:
+    # 密钥（生产环境使用环境变量）
+    secret: ${JWT_SECRET:chatbi-enterprise-secret-key-min-256-bit-for-jwt-signing}
+    # Token 有效期（毫秒）
+    expiration: 3600000
+    # Refresh Token 有效期（毫秒）
+    refresh-expiration: 604800000
+    # Token 头
+    header: Authorization
+    # Token 前缀
+    prefix: Bearer
+
+  # Swagger/OpenAPI 配置
+  swagger:
+    enabled: true
+    title: ChatBI API 文档
+    description: ChatBI 企业级 BI 平台 API
+    version: 2.0.0
+    contact-name: ChatBI Team
+    contact-email: support@chatbi.com
+
+  # 安全配置
+  security:
+    # 密码盐（生产环境使用环境变量）
+    password-salt: ${PASSWORD_SALT:chatbi-salt-2026}
+    # 密码强度
+    password-min-length: 10
+    password-require-uppercase: true
+    password-require-lowercase: true
+    password-require-digit: true
+    password-require-special: true
+    # 登录失败限制
+    max-login-attempts: 5
+    lock-duration-minutes: 30
+    # Captcha 配置
+    captcha-enabled: true
+    captcha-expiration: 300
+    # OAuth2 配置 (Spring Security)
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope: profile,email
+            redirect-uri: "{baseUrl}/api/sso/callback/{registrationId}"
+          github:
+            client-id: ${GITHUB_CLIENT_ID:}
+            client-secret: ${GITHUB_CLIENT_SECRET:}
+            scope: user:email
+            redirect-uri: "{baseUrl}/api/sso/callback/{registrationId}"
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+            user-name-attribute: id
+
+  # 限流配置
+  rate-limit:
+    enabled: true
+    # 登录限流
+    login-max-requests: 5
+    login-period-seconds: 60
+    # 查询限流
+    query-max-requests: 100
+    query-period-seconds: 60
+
+  # 上传配置
+  upload:
+    path: ${UPLOAD_PATH:./uploads}
+    max-size: 52428800
+    allowed-types: .jpg,.png,.gif,.jpeg,.svg,.webp
+
+  # 跨域配置
+  cors:
+    enabled: true
+    allowed-origins: http://localhost:3000,http://localhost:8080
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: Authorization,Content-Type,X-Requested-With
+    max-age: 3600
+
+chatbi:
+  ai:
+    observability:
+      thresholds:
+        window-minutes: ${AI_OBSERVABILITY_WINDOW_MINUTES:10}
+        min-sample-size-for-alert: ${AI_OBSERVABILITY_MIN_SAMPLE_SIZE_FOR_ALERT:5}
+        failure-rate-warning: ${AI_OBSERVABILITY_FAILURE_RATE_WARNING:0.20}
+        failure-rate-critical: ${AI_OBSERVABILITY_FAILURE_RATE_CRITICAL:0.40}
+        latency-warning-ms: ${AI_OBSERVABILITY_LATENCY_WARNING_MS:3000}
+        latency-critical-ms: ${AI_OBSERVABILITY_LATENCY_CRITICAL_MS:6000}
+        consecutive-failure-warning: ${AI_OBSERVABILITY_CONSECUTIVE_FAILURE_WARNING:3}
+        consecutive-failure-critical: ${AI_OBSERVABILITY_CONSECUTIVE_FAILURE_CRITICAL:6}
+        category-spike-warning: ${AI_OBSERVABILITY_CATEGORY_SPIKE_WARNING:2}
+        category-spike-critical: ${AI_OBSERVABILITY_CATEGORY_SPIKE_CRITICAL:4}
+        recent-call-limit: ${AI_OBSERVABILITY_RECENT_CALL_LIMIT:50}
+        switch-event-limit: ${AI_OBSERVABILITY_SWITCH_EVENT_LIMIT:30}
+      notify:
+        enabled: ${AI_OBSERVABILITY_NOTIFY_ENABLED:false}
+        channels: ${AI_OBSERVABILITY_NOTIFY_CHANNELS:}
+        email-to: ${AI_OBSERVABILITY_NOTIFY_EMAIL_TO:}
+        dingtalk-webhook: ${AI_OBSERVABILITY_NOTIFY_DINGTALK_WEBHOOK:}
+        wechat-webhook: ${AI_OBSERVABILITY_NOTIFY_WECHAT_WEBHOOK:}
+        subject-prefix: ${AI_OBSERVABILITY_NOTIFY_SUBJECT_PREFIX:[ChatBI AI告警]}
+        notify-min-interval-seconds: ${AI_OBSERVABILITY_NOTIFY_MIN_INTERVAL_SECONDS:300}
+
+# LLM 配置
+llm:
+  api:
+    key: ${LLM_API_KEY:}
+    base-url: ${LLM_BASE_URL:https://api.openai.com/v1}
+  model: ${LLM_MODEL:gpt-4}

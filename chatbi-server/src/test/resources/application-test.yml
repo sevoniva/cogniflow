@@ -1,0 +1,90 @@
+spring:
+  application:
+    name: chatbi-server-test
+
+  # 数据源配置 - H2 内存数据库
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    druid:
+      validation-query: SELECT 1
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema-test.sql
+      data-locations: classpath:db/test-data.sql
+
+  # H2 控制台
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # JPA/Hibernate 配置
+  jpa:
+    defer-datasource-initialization: true
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+  # Redis 配置 - 禁用
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+# 禁用动态数据源
+dynamic:
+  datasource:
+    enabled: false
+
+# MyBatis Plus 配置
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.chatbi.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    lazy-loading-enabled: false
+    aggressive-lazy-loading: false
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deletedAt
+      logic-delete-value: now()
+      logic-not-delete-value: 'null'
+
+# JWT 测试配置
+app:
+  redisson:
+    enabled: false
+  demo:
+    load-large-datasets: false
+  security:
+    dev-permit-all-api: true
+    ensure-default-admin: false
+  jwt:
+    secret: test-secret-key-for-unit-testing-min-256-bit-for-jwt-signing
+    expiration: 3600000
+    refresh-expiration: 604800000
+
+chatbi:
+  ai:
+    enabled: false
+
+# 禁用 Security 进行部分测试
+security:
+  enabled: false
+
+# 日志配置
+logging:
+  level:
+    root: WARN
+    com.chatbi: DEBUG

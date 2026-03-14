@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chatbi.repository.SysUserMapper">
+
+    <!-- 根据用户名查询用户 -->
+    <select id="selectByUsername" resultType="com.chatbi.entity.SysUser">
+        SELECT * FROM sys_user
+        WHERE username = #{username}
+        AND deleted_at IS NULL
+    </select>
+
+    <!-- 查询用户的角色 ID 列表 -->
+    <select id="selectRoleIdsByUserId" resultType="java.lang.Long">
+        SELECT role_id FROM sys_user_role
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 查询用户的权限编码列表 -->
+    <select id="selectPermissionCodesByUserId" resultType="java.lang.String">
+        SELECT DISTINCT p.perm_code
+        FROM sys_permission p
+        INNER JOIN sys_role_permission rp ON p.id = rp.permission_id
+        INNER JOIN sys_user_role ur ON rp.role_id = ur.role_id
+        WHERE ur.user_id = #{userId}
+        AND p.status = 1
+        AND p.deleted_at IS NULL
+    </select>
+
+</mapper>

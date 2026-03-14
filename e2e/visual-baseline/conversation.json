@@ -1,0 +1,45 @@
+{
+  "name": "conversation",
+  "path": "/chatbi/conversation",
+  "title": "AI对话查询 - Chat BI",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "bodyMetrics": {
+    "scrollWidth": 1440,
+    "scrollHeight": 900
+  },
+  "selectors": [
+    {
+      "selector": ".workspace-card",
+      "exists": true,
+      "rect": {
+        "x": 16,
+        "y": 88,
+        "width": 1408,
+        "height": 466
+      }
+    },
+    {
+      "selector": ".composer",
+      "exists": true,
+      "rect": {
+        "x": 17,
+        "y": 339,
+        "width": 1406,
+        "height": 297
+      }
+    },
+    {
+      "selector": ".messages-shell",
+      "exists": true,
+      "rect": {
+        "x": 17,
+        "y": 172,
+        "width": 1406,
+        "height": 168
+      }
+    }
+  ]
+}

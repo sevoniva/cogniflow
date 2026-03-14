@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# build artifacts
+dist/
+coverage/
+playwright-report/
+test-results/
+test-output/
+reports/
+
+# runtime logs and temp
+chatbi-server/logs/
+chatbi-server/backend.log
+chatbi-server/chatbi.log
+chatbi-server/target/
+*.log
+*.tmp
+
+# local environment
+chatbi-server/.env.compose
+.codex-artifacts/
+.DS_Store
+mysql-data/
+
+# test snapshots
+**/__snapshots__/
+*.snap

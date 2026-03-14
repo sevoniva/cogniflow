@@ -1,0 +1,45 @@
+{
+  "name": "advanced-charts",
+  "path": "/chatbi/advanced-charts",
+  "title": "高级图表 - Chat BI",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "bodyMetrics": {
+    "scrollWidth": 1440,
+    "scrollHeight": 2729
+  },
+  "selectors": [
+    {
+      "selector": ".advanced-charts-page",
+      "exists": true,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 2729
+      }
+    },
+    {
+      "selector": ".market-grid",
+      "exists": true,
+      "rect": {
+        "x": 118,
+        "y": 1533,
+        "width": 1204,
+        "height": 320
+      }
+    },
+    {
+      "selector": ".validation-table",
+      "exists": true,
+      "rect": {
+        "x": 118,
+        "y": 484,
+        "width": 1204,
+        "height": 320
+      }
+    }
+  ]
+}

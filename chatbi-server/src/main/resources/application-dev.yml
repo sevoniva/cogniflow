@@ -1,0 +1,85 @@
+# 开发环境配置
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:chatbi}?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: ${DB_USERNAME:chatbi}
+    password: ${DB_PASSWORD:ChatBI@2026}
+    druid:
+      validation-query: SELECT 1
+
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      schema-locations:
+        - classpath:db/schema-dev-core-mysql.sql
+        - classpath:db/schema-dev-business-mysql.sql
+        - classpath:db/schema-dev-agile-mysql.sql
+      data-locations:
+        - classpath:db/security-demo.sql
+        - classpath:db/platform-demo-mysql.sql
+        - classpath:db/extra-demo-mysql.sql
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    defer-datasource-initialization: true
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 1000ms
+
+# 禁用动态数据源，统一使用本地 MySQL 作为管理库与默认业务仓
+# 查询执行通过 data_source 表中的默认 MySQL 数据源连接真实业务表
+
+dynamic:
+  datasource:
+    enabled: false
+
+# MyBatis Plus 配置
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.chatbi.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: true
+    lazy-loading-enabled: false
+    aggressive-lazy-loading: false
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deletedAt
+      logic-delete-value: now()
+      logic-not-delete-value: 'null'
+
+logging:
+  level:
+    com.chatbi: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+
+management:
+  health:
+    redis:
+      enabled: false
+
+app:
+  demo:
+    load-large-datasets: true
+  redisson:
+    enabled: false
+  security:
+    dev-permit-all-api: true
+    ensure-default-admin: true

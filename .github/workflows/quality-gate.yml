@@ -1,0 +1,89 @@
+name: Quality Gate
+
+on:
+  push:
+    branches:
+      - main
+      - 'codex/**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI: true
+      FRONTEND_COVERAGE: 1
+      SERVER_PORT: 19091
+      DB_HOST: 127.0.0.1
+      DB_PORT: 33060
+      DB_NAME: chatbi
+      DB_USERNAME: chatbi
+      DB_PASSWORD: ChatBI@2026
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6380
+      BASE_URL: http://127.0.0.1:18090
+      SMOKE_BASE_URL: http://127.0.0.1:19091/api
+      VISUAL_BASELINE_CHECKS: 1
+      VISUAL_BASELINE_LAYOUT_TOLERANCE: 16
+      PERF_BUDGET_CHECKS: 1
+      PERF_BUDGET_HEALTH_MS: 800
+      PERF_BUDGET_QUERY_MS: 2200
+      PERF_BUDGET_CONVERSATION_MS: 2500
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Start MySQL and Redis
+        run: docker compose up -d mysql redis
+
+      - name: Start backend
+        run: |
+          mkdir -p .codex-artifacts
+          nohup bash -lc 'cd chatbi-server && mvn spring-boot:run' > .codex-artifacts/backend-ci.log 2>&1 &
+          bash scripts/wait-for-http.sh "http://127.0.0.1:19091/actuator/health" 180
+
+      - name: Start frontend
+        run: |
+          nohup npm run dev -- --host 0.0.0.0 --port 18090 > .codex-artifacts/frontend-ci.log 2>&1 &
+          bash scripts/wait-for-http.sh "http://127.0.0.1:18090" 120
+
+      - name: Run quality gate
+        run: npm run quality:gate
+
+      - name: Upload CI logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chatbi-ci-logs
+          path: |
+            .codex-artifacts/backend-ci.log
+            .codex-artifacts/frontend-ci.log
+            coverage/
+            chatbi-server/target/surefire-reports/
+            playwright-report/
+
+      - name: Shutdown services
+        if: always()
+        run: docker compose down -v

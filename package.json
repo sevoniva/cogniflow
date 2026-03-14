@@ -1,0 +1,47 @@
+{
+  "name": "chatbi-frontend",
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "build:only": "vite build",
+    "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit",
+    "test": "vitest --config vitest.enterprise.config.ts",
+    "test:ui": "vitest --config vitest.enterprise.config.ts --ui",
+    "test:coverage": "vitest --config vitest.enterprise.config.ts --coverage",
+    "test:e2e": "playwright test",
+    "quality:gate": "bash scripts/quality-gate.sh",
+    "quality:semantic": "bash scripts/semantic-benchmark-report.sh",
+    "release:readiness": "bash scripts/release-readiness.sh",
+    "release:drill": "bash scripts/release-deploy-drill.sh",
+    "release:security": "bash scripts/release-security-check.sh",
+    "release:support": "bash scripts/release-support-check.sh"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.0",
+    "echarts": "^5.5.0",
+    "element-plus": "^2.5.0",
+    "lodash-es": "^4.17.21",
+    "vue": "^3.4.0",
+    "vue-echarts": "^6.6.0",
+    "vue-grid-layout": "^2.4.0",
+    "vue-router": "^4.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@testing-library/vue": "^8.0.0",
+    "@types/node": "^25.4.0",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "@vitest/coverage-v8": "^1.2.0",
+    "@vitest/ui": "^1.2.0",
+    "happy-dom": "^15.11.7",
+    "sass-embedded": "^1.97.3",
+    "terser": "^5.46.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0",
+    "vitest": "^1.2.0",
+    "vue-tsc": "^2.0.0"
+  }
+}

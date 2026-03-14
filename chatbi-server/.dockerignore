@@ -1,0 +1,6 @@
+target
+logs
+uploads
+data
+.git
+*.log

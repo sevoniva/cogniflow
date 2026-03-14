@@ -27,7 +27,7 @@ npm run quality:gate
 ## Default Access
 
 - Web: `http://localhost:18090`
-- API health: `http://localhost:19091/api/health`
+- API health: `http://localhost:19091/actuator/health`
 
 ## Notes
 

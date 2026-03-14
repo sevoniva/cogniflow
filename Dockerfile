@@ -6,7 +6,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY index.html ./
-COPY tsconfig.json vitest.config.ts playwright.config.ts vite.config.ts ./
+COPY tsconfig.json vitest.enterprise.config.ts playwright.config.ts vite.config.ts ./
 COPY .env.example ./
 COPY src ./src
 

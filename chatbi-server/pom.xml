@@ -274,11 +274,16 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- OpenAI SDK for LLM Integration -->
+        <!-- LangChain4j - LLM 应用框架 -->
         <dependency>
-            <groupId>com.theokanning.openai-gpt3-java</groupId>
-            <artifactId>service</artifactId>
-            <version>0.18.0</version>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>0.35.0</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai</artifactId>
+            <version>0.35.0</version>
         </dependency>
 
         <!-- PDF 导出 -->
@@ -321,7 +326,7 @@
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
-                            <version>1.18.30</version>
+                            <version>1.18.36</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>

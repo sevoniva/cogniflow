@@ -13,7 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -78,8 +78,8 @@ public class QueryExecutionService {
                 .maximumSize(100)
                 .expireAfterAccess(poolCacheExpireMinutes, TimeUnit.MINUTES)
                 .removalListener((key, value, cause) -> {
-                    if (value != null) {
-                        value.close();
+                    if (value instanceof HikariDataSource) {
+                        ((HikariDataSource) value).close();
                         log.info("数据源连接池已清理 - ID: {}, cause: {}", key, cause);
                     }
                 })

@@ -160,6 +160,16 @@ app:
     max-size: 52428800
     allowed-types: .jpg,.png,.gif,.jpeg,.svg,.webp
 
+  # 数据源连接池配置
+  datasource:
+    pool:
+      max-size: ${DS_POOL_MAX_SIZE:10}
+      min-idle: ${DS_POOL_MIN_IDLE:2}
+      connection-timeout: ${DS_POOL_CONN_TIMEOUT:30000}
+      idle-timeout: ${DS_POOL_IDLE_TIMEOUT:600000}
+      max-lifetime: ${DS_POOL_MAX_LIFETIME:1800000}
+      cache-expire-minutes: ${DS_POOL_CACHE_EXPIRE_MINUTES:60}
+
   # 跨域配置
   cors:
     enabled: true

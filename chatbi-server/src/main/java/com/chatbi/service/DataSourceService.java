@@ -3,7 +3,6 @@ package com.chatbi.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.chatbi.common.exception.BusinessException;
-import com.chatbi.datasource.DynamicDataSourceRegistry;
 import com.chatbi.entity.DataSource;
 import com.chatbi.enums.DataSourceType;
 import com.chatbi.repository.DataSourceMapper;
@@ -30,8 +29,6 @@ import java.util.Map;
 public class DataSourceService {
 
     private final DataSourceMapper dataSourceMapper;
-    private final DynamicDataSourceRegistry dynamicDataSourceRegistry;
-
     /**
      * 加密密钥（生产环境应使用环境变量）
      */
@@ -138,9 +135,6 @@ public class DataSourceService {
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         DataSource dataSource = getById(id);
-
-        // 从注册表移除
-        dynamicDataSourceRegistry.removeDataSource(dataSource.getCode());
 
         dataSourceMapper.deleteById(id);
         log.info("删除数据源成功：{}", dataSource.getCode());

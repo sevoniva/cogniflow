@@ -40,13 +40,6 @@ spring:
       password: ${REDIS_PASSWORD:}
       timeout: 1000ms
 
-# 禁用动态数据源，统一使用本地 MySQL 作为管理库与默认业务仓
-# 查询执行通过 data_source 表中的默认 MySQL 数据源连接真实业务表
-
-dynamic:
-  datasource:
-    enabled: false
-
 # MyBatis Plus 配置
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml

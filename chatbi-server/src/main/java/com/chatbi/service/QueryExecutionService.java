@@ -2,14 +2,18 @@ package com.chatbi.service;
 
 import com.chatbi.entity.DataSource;
 import com.chatbi.utils.EncryptionUtils;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -18,11 +22,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 查询执行服务
  * 用于执行动态 SQL 查询和提取数据库元数据
+ *
+ * 改造说明：
+ * - 将无限增长的 ConcurrentHashMap 替换为 Caffeine 缓存（支持过期自动清理）
+ * - 添加连接池健康检查（定时清理失效连接池）
+ * - 连接池配置参数化
  */
 @Slf4j
 @Service
@@ -42,13 +51,45 @@ public class QueryExecutionService {
     @Value("${app.query-governance.query-timeout-seconds:30}")
     private int queryTimeoutSeconds;
 
-    // 数据源连接池缓存
-    private final Map<Long, HikariDataSource> dataSourceCache = new ConcurrentHashMap<>();
+    // 数据源连接池缓存（改造：Caffeine 替代 ConcurrentHashMap）
+    private Cache<Long, HikariDataSource> dataSourceCache;
+
+    @Value("${app.datasource.pool.max-size:10}")
+    private int poolMaxSize;
+
+    @Value("${app.datasource.pool.min-idle:2}")
+    private int poolMinIdle;
+
+    @Value("${app.datasource.pool.connection-timeout:30000}")
+    private long poolConnectionTimeout;
+
+    @Value("${app.datasource.pool.idle-timeout:600000}")
+    private long poolIdleTimeout;
+
+    @Value("${app.datasource.pool.max-lifetime:1800000}")
+    private long poolMaxLifetime;
+
+    @Value("${app.datasource.pool.cache-expire-minutes:60}")
+    private long poolCacheExpireMinutes;
+
+    @PostConstruct
+    public void init() {
+        this.dataSourceCache = Caffeine.newBuilder()
+                .maximumSize(100)
+                .expireAfterAccess(poolCacheExpireMinutes, TimeUnit.MINUTES)
+                .removalListener((key, value, cause) -> {
+                    if (value != null) {
+                        value.close();
+                        log.info("数据源连接池已清理 - ID: {}, cause: {}", key, cause);
+                    }
+                })
+                .build();
+        log.info("QueryExecutionService 初始化完成 - poolMaxSize: {}, poolMinIdle: {}, cacheExpireMinutes: {}",
+                poolMaxSize, poolMinIdle, poolCacheExpireMinutes);
+    }
 
     /**
      * 执行 SQL 查询（使用默认数据源）
-     * @param sql SQL 语句
-     * @return 查询结果
      */
     public List<Map<String, Object>> execute(String sql) {
         QueryGovernanceService.GovernedQuery governedQuery = queryGovernanceService.govern(null, sql);
@@ -65,9 +106,6 @@ public class QueryExecutionService {
 
     /**
      * 执行 SQL 查询（指定数据源）
-     * @param dataSource 数据源配置
-     * @param sql SQL 语句
-     * @return 查询结果
      */
     public List<Map<String, Object>> executeQuery(DataSource dataSource, String sql) {
         return executeQuery(dataSource, sql, null);
@@ -110,8 +148,6 @@ public class QueryExecutionService {
 
     /**
      * 提取数据库表结构信息
-     * @param dataSource 数据源配置
-     * @return 表结构列表
      */
     public List<AiQueryService.TableSchema> extractTableSchemas(DataSource dataSource) {
         try {
@@ -153,8 +189,6 @@ public class QueryExecutionService {
 
     /**
      * 测试数据源连接
-     * @param dataSource 数据源配置
-     * @return 是否连接成功
      */
     public boolean testConnection(DataSource dataSource) {
         HikariDataSource hikariDataSource = null;
@@ -176,10 +210,17 @@ public class QueryExecutionService {
     }
 
     /**
-     * 获取或创建数据源连接池
+     * 获取或创建数据源连接池（改造：使用 Caffeine 缓存）
      */
     private HikariDataSource getOrCreateDataSource(DataSource dataSource) {
-        return dataSourceCache.computeIfAbsent(dataSource.getId(), id -> createDataSource(dataSource));
+        HikariDataSource cached = dataSourceCache.getIfPresent(dataSource.getId());
+        if (cached != null && !cached.isClosed()) {
+            return cached;
+        }
+        // 缓存未命中或连接池已关闭，创建新的
+        HikariDataSource ds = createDataSource(dataSource);
+        dataSourceCache.put(dataSource.getId(), ds);
+        return ds;
     }
 
     /**
@@ -206,12 +247,17 @@ public class QueryExecutionService {
             config.setDriverClassName(getDriverClassName(ds.getType()));
         }
 
-        config.setMaximumPoolSize(10);
-        config.setMinimumIdle(2);
-        config.setConnectionTimeout(30000);
-        config.setIdleTimeout(600000);
-        config.setMaxLifetime(1800000);
+        // 参数化配置（改造前为硬编码）
+        config.setMaximumPoolSize(poolMaxSize);
+        config.setMinimumIdle(poolMinIdle);
+        config.setConnectionTimeout(poolConnectionTimeout);
+        config.setIdleTimeout(poolIdleTimeout);
+        config.setMaxLifetime(poolMaxLifetime);
         config.setPoolName("ChatBI-" + ds.getName());
+
+        // 健康检查配置
+        config.setConnectionTestQuery("SELECT 1");
+        config.setValidationTimeout(5000);
 
         return new HikariDataSource(config);
     }
@@ -260,23 +306,49 @@ public class QueryExecutionService {
     }
 
     /**
-     * 清理数据源缓存
+     * 清理指定数据源的连接池
      */
     public void clearDataSourceCache(Long dataSourceId) {
-        HikariDataSource hikariDataSource = dataSourceCache.remove(dataSourceId);
+        HikariDataSource hikariDataSource = dataSourceCache.getIfPresent(dataSourceId);
         if (hikariDataSource != null) {
             hikariDataSource.close();
-            log.info("已清理数据源缓存 - ID: {}", dataSourceId);
+            dataSourceCache.invalidate(dataSourceId);
+            log.info("已清理数据源连接池 - ID: {}", dataSourceId);
         }
     }
 
     /**
-     * 清理所有数据源缓存
+     * 清理所有数据源连接池
      */
     public void clearAllDataSourceCache() {
-        dataSourceCache.values().forEach(HikariDataSource::close);
-        dataSourceCache.clear();
-        log.info("已清理所有数据源缓存");
+        dataSourceCache.asMap().values().forEach(HikariDataSource::close);
+        dataSourceCache.invalidateAll();
+        log.info("已清理所有数据源连接池");
+    }
+
+    /**
+     * 定时健康检查：清理已关闭或异常的连接池
+     */
+    @Scheduled(fixedDelay = 300000) // 每5分钟执行一次
+    public void healthCheck() {
+        int cleaned = 0;
+        for (Map.Entry<Long, HikariDataSource> entry : dataSourceCache.asMap().entrySet()) {
+            HikariDataSource ds = entry.getValue();
+            if (ds.isClosed()) {
+                dataSourceCache.invalidate(entry.getKey());
+                cleaned++;
+            }
+        }
+        if (cleaned > 0) {
+            log.info("数据源连接池健康检查 - 清理 {} 个失效连接池", cleaned);
+        }
+    }
+
+    /**
+     * 获取连接池缓存统计
+     */
+    public com.github.benmanes.caffeine.cache.stats.CacheStats getPoolStats() {
+        return dataSourceCache.stats();
     }
 
     private List<AiQueryService.TableSchema.Column> readColumns(

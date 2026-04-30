@@ -4,11 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Alias;
-import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.operators.relational.ParenthesedExpressionList;
-import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
@@ -23,6 +20,8 @@ import net.sf.jsqlparser.statement.select.ParenthesedSelect;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
+import net.sf.jsqlparser.statement.select.SetOperationList;
+import net.sf.jsqlparser.statement.select.WithItem;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -40,6 +39,13 @@ import java.util.Set;
  * 查询治理服务。
  *
  * <p>负责统一做 SQL 只读校验、系统表访问拦截、行级权限注入以及结果列血缘提取。</p>
+ *
+ * <p>改造说明：</p>
+ * <ul>
+ *   <li>支持子查询、UNION、CTE（WITH 子句）</li>
+ *   <li>递归遍历 AST，对所有 PlainSelect 注入权限和 LIMIT</li>
+ *   <li>递归收集所有表引用进行安全校验</li>
+ * </ul>
  */
 @Slf4j
 @Service
@@ -83,11 +89,19 @@ public class QueryGovernanceService {
             return ValidationResult.invalid("仅支持 SELECT 查询");
         }
 
-        if (!(select.getSelectBody() instanceof PlainSelect plainSelect)) {
-            return ValidationResult.invalid("当前仅支持单层 SELECT / JOIN 查询，暂不支持 UNION、CTE 或子查询");
+        // 改造：递归收集所有表引用进行校验（支持子查询/UNION/CTE）
+        List<PlainSelect> allPlainSelects = collectPlainSelects(select);
+        if (allPlainSelects.isEmpty()) {
+            return ValidationResult.invalid("未识别到有效的查询语句");
         }
 
-        ValidationResult tableValidation = validateTables(plainSelect);
+        Map<String, TableRef> allTables = new LinkedHashMap<>();
+        for (PlainSelect plainSelect : allPlainSelects) {
+            Map<String, TableRef> tables = resolveTables(plainSelect);
+            allTables.putAll(tables);
+        }
+
+        ValidationResult tableValidation = validateTables(allTables.values());
         if (!tableValidation.valid()) {
             return tableValidation;
         }
@@ -104,13 +118,24 @@ public class QueryGovernanceService {
         String normalizedSql = normalizeSql(sql);
         try {
             Select select = (Select) CCJSqlParserUtil.parse(normalizedSql);
-            PlainSelect plainSelect = (PlainSelect) select.getSelectBody();
 
-            Map<String, TableRef> tableRefByAlias = resolveTables(plainSelect);
-            applyPermissionConditions(userId, plainSelect, tableRefByAlias.values());
-            enforceLimit(plainSelect);
+            // 改造：递归收集所有 PlainSelect，对每个注入权限和 LIMIT
+            List<PlainSelect> allPlainSelects = collectPlainSelects(select);
+            Set<String> allTableNames = new LinkedHashSet<>();
+            Map<String, ColumnBinding> allBindings = new LinkedHashMap<>();
+            Set<String> allWildcardTables = new LinkedHashSet<>();
 
-            QueryLineage lineage = buildLineage(plainSelect, tableRefByAlias);
+            for (PlainSelect plainSelect : allPlainSelects) {
+                Map<String, TableRef> tableRefByAlias = resolveTables(plainSelect);
+                applyPermissionConditions(userId, plainSelect, tableRefByAlias.values());
+                enforceLimit(plainSelect);
+
+                QueryLineage lineage = buildLineage(plainSelect, tableRefByAlias);
+                allTableNames.addAll(lineage.tableNames());
+                allBindings.putAll(lineage.columnBindings());
+                allWildcardTables.addAll(lineage.wildcardTables());
+            }
+
             String governedSql = select.toString();
             String cacheScopeKey = userId == null ? "public" : "user:" + userId;
 
@@ -118,9 +143,9 @@ public class QueryGovernanceService {
                 normalizedSql,
                 governedSql,
                 cacheScopeKey,
-                new ArrayList<>(lineage.tableNames()),
-                lineage.columnBindings(),
-                lineage.wildcardTables()
+                new ArrayList<>(allTableNames),
+                allBindings,
+                allWildcardTables
             );
         } catch (JSQLParserException e) {
             log.error("SQL 治理失败 - sql: {}", normalizedSql, e);
@@ -128,23 +153,64 @@ public class QueryGovernanceService {
         }
     }
 
-    private ValidationResult validateTables(PlainSelect plainSelect) {
-        try {
-            Map<String, TableRef> tables = resolveTables(plainSelect);
-            if (tables.isEmpty()) {
-                return ValidationResult.invalid("未识别到可查询的数据表");
+    /**
+     * 改造：递归收集 Select 中的所有 PlainSelect（支持子查询/UNION/CTE）
+     */
+    private List<PlainSelect> collectPlainSelects(Select select) {
+        List<PlainSelect> result = new ArrayList<>();
+        if (select == null) return result;
+
+        // 收集主查询体中的 PlainSelect
+        collectPlainSelects(select.getSelectBody(), result);
+
+        // 收集 CTE（WITH 子句）中的 PlainSelect
+        List<WithItem> withItems = select.getWithItemsList();
+        if (withItems != null) {
+            for (WithItem withItem : withItems) {
+                collectPlainSelects(withItem.getSelectBody(), result);
+            }
+        }
+
+        return result;
+    }
+
+    private void collectPlainSelects(Select selectBody, List<PlainSelect> result) {
+        if (selectBody instanceof PlainSelect plainSelect) {
+            result.add(plainSelect);
+
+            // 递归收集 FROM 子句中的子查询
+            if (plainSelect.getFromItem() instanceof ParenthesedSelect parenthesedSelect) {
+                collectPlainSelects(parenthesedSelect.getSelect(), result);
             }
 
-            for (TableRef tableRef : tables.values()) {
-                String tableName = normalizeIdentifier(tableRef.tableName());
-                if (PROTECTED_TABLES.contains(tableName) || tableName.startsWith("sys_")) {
-                    return ValidationResult.invalid("禁止查询系统治理表：" + tableRef.tableName());
+            // 递归收集 JOIN 中的子查询
+            if (plainSelect.getJoins() != null) {
+                for (Join join : plainSelect.getJoins()) {
+                    if (join.getRightItem() instanceof ParenthesedSelect parenthesedSelect) {
+                        collectPlainSelects(parenthesedSelect.getSelect(), result);
+                    }
                 }
             }
-            return ValidationResult.passed();
-        } catch (IllegalArgumentException ex) {
-            return ValidationResult.invalid(ex.getMessage());
+        } else if (selectBody instanceof SetOperationList setOpList) {
+            // UNION / INTERSECT / EXCEPT
+            for (Select body : setOpList.getSelects()) {
+                collectPlainSelects(body, result);
+            }
         }
+    }
+
+    private ValidationResult validateTables(Collection<TableRef> tables) {
+        if (tables.isEmpty()) {
+            return ValidationResult.invalid("未识别到可查询的数据表");
+        }
+
+        for (TableRef tableRef : tables) {
+            String tableName = normalizeIdentifier(tableRef.tableName());
+            if (PROTECTED_TABLES.contains(tableName) || tableName.startsWith("sys_")) {
+                return ValidationResult.invalid("禁止查询系统治理表：" + tableRef.tableName());
+            }
+        }
+        return ValidationResult.passed();
     }
 
     private void applyPermissionConditions(Long userId, PlainSelect plainSelect, Collection<TableRef> tableRefs) {
@@ -253,12 +319,21 @@ public class QueryGovernanceService {
         return tableRefs;
     }
 
+    /**
+     * 改造：支持子查询（ParenthesedSelect / SubSelect），递归解析其中的表
+     */
     private void registerTable(FromItem fromItem, Map<String, TableRef> tableRefs) {
         if (fromItem == null) {
             return;
         }
-        if (fromItem instanceof ParenthesedSelect) {
-            throw new IllegalArgumentException("当前暂不支持子查询，请改为单层 SELECT / JOIN");
+        if (fromItem instanceof ParenthesedSelect parenthesedSelect) {
+            // 子查询：递归解析
+            Select subBody = parenthesedSelect.getSelect();
+            if (subBody instanceof PlainSelect subPlainSelect) {
+                Map<String, TableRef> subTables = resolveTables(subPlainSelect);
+                tableRefs.putAll(subTables);
+            }
+            return;
         }
         if (!(fromItem instanceof Table table)) {
             throw new IllegalArgumentException("当前仅支持真实表查询，不支持临时表或函数表");

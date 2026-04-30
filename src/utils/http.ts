@@ -1,7 +1,36 @@
 import type { ApiResponse } from '@/types'
+import { ofetch, type FetchOptions } from 'ofetch'
 
 const API_BASE = ((import.meta as any).env?.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 const TIMEOUT = 10000
+
+/**
+ * 底层 HTTP 客户端（ofetch 实例）
+ *
+ * 改造说明：
+ * - 替换原生 fetch，获得拦截器、自动重试、请求取消、基础 URL 配置
+ * - 保留原有 request() 接口兼容性
+ */
+const $http = ofetch.create({
+  baseURL: API_BASE,
+  credentials: 'include',
+  timeout: TIMEOUT,
+  retry: 1,
+  retryStatusCodes: [408, 429, 500, 502, 503, 504],
+
+  onRequest({ options }) {
+    const headers = new Headers(options.headers || {})
+    const isJsonBody = options.body !== undefined && !(options.body instanceof FormData)
+    if (isJsonBody && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json')
+    }
+    options.headers = headers
+  },
+
+  onResponseError({ response, request }) {
+    console.warn(`[HTTP] ${request} -> ${response.status} ${response.statusText}`)
+  }
+})
 
 function isApiEnvelope(payload: unknown): payload is { success?: boolean; data?: unknown; error?: string; message?: string } {
   return !!payload && typeof payload === 'object' && ('success' in payload || 'error' in payload)
@@ -39,49 +68,26 @@ function normalizeResponse<T>(payload: unknown, response: Response): ApiResponse
   }
 }
 
-async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
-  const controller = new AbortController()
-  const timeoutId = window.setTimeout(() => controller.abort(), TIMEOUT)
-
-  try {
-    return await fetch(url, {
-      credentials: 'include',
-      ...options,
-      signal: controller.signal
-    })
-  } finally {
-    window.clearTimeout(timeoutId)
-  }
-}
-
+/**
+ * HTTP 请求（兼容原有接口）
+ */
 export async function request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  const url = path.startsWith('http://') || path.startsWith('https://')
-    ? path
-    : (normalizedPath === API_BASE || normalizedPath.startsWith(`${API_BASE}/`))
-      ? normalizedPath
-      : `${API_BASE}${normalizedPath}`
-
-  const headers = new Headers(options.headers || {})
-  const isJsonBody = options.body !== undefined && !(options.body instanceof FormData)
-  if (isJsonBody && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json')
-  }
+  const isAbsoluteUrl = path.startsWith('http://') || path.startsWith('https://')
 
   try {
-    const response = await fetchWithTimeout(url, {
-      ...options,
-      headers
+    const response = await $http.raw(normalizedPath, {
+      ...options as FetchOptions,
+      baseURL: isAbsoluteUrl ? undefined : API_BASE
     })
 
-    const rawText = await response.text()
-    const payload = rawText ? JSON.parse(rawText) : null
-    const normalized = normalizeResponse<T>(payload, response)
+    const payload = response._data
+    const normalized = normalizeResponse<T>(payload, response.response)
 
-    if (!response.ok && normalized.success) {
+    if (!response.response.ok && normalized.success) {
       return {
         success: false,
-        error: `HTTP ${response.status}: ${response.statusText}`,
+        error: `HTTP ${response.response.status}: ${response.response.statusText}`,
         message: normalized.message,
         data: normalized.data
       }
@@ -89,7 +95,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
     return normalized
   } catch (error: any) {
-    if (error?.name === 'AbortError') {
+    if (error?.name === 'AbortError' || error?.message?.includes('timeout')) {
       return { success: false, error: '请求超时，请检查后端服务是否启动' }
     }
 
@@ -97,9 +103,20 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       return { success: false, error: '接口返回数据格式异常' }
     }
 
+    // ofetch 错误信息
+    const statusCode = error?.response?.status
+    if (statusCode) {
+      return { success: false, error: `HTTP ${statusCode}: ${error.message || '请求失败'}` }
+    }
+
     return { success: false, error: error?.message || '网络请求失败，请检查网络连接' }
   }
 }
+
+/**
+ * 原生 ofetch 实例（供高级场景直接使用）
+ */
+export { $http }
 
 export function extractRecords<T>(data: unknown): T[] {
   if (Array.isArray(data)) {

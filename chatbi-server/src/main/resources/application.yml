@@ -75,6 +75,12 @@ management:
 app:
   redis:
     enabled: ${CHATBI_REDIS_ENABLED:false}
+  cache:
+    local:
+      max-size: ${CACHE_LOCAL_MAX_SIZE:1000}
+      expire-minutes: ${CACHE_LOCAL_EXPIRE_MINUTES:10}
+    redis:
+      expire-minutes: ${CACHE_REDIS_EXPIRE_MINUTES:30}
   jwt:
     # 密钥（生产环境使用环境变量）
     secret: ${JWT_SECRET:chatbi-enterprise-secret-key-min-256-bit-for-jwt-signing}

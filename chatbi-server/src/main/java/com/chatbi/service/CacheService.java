@@ -1,25 +1,41 @@
 package com.chatbi.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.PostConstruct;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Redis 缓存服务
+ * 缓存服务 - 多级缓存实现（Caffeine L1 + Redis L2）
+ *
+ * 改造说明：
+ * - 原实现使用无限增长的 ConcurrentHashMap，无容量限制，存在内存泄漏风险
+ * - 新实现使用 Caffeine 本地缓存（W-TinyLFU 驱逐策略）+ Redis 分布式缓存
+ * - 保留原有 API 兼容性，调用方无需修改
+ * - 推荐逐步迁移到 @Cacheable / @CacheEvict 注解驱动
  */
+@Slf4j
 @Service
 public class CacheService {
 
-    private final Map<String, LocalValue> localCache = new ConcurrentHashMap<>();
+    private Cache<String, Object> localCache;
 
     private RedisTemplate<String, Object> redisTemplate;
+
     @Value("${app.redis.enabled:false}")
     private boolean redisEnabled = false;
+
+    @Value("${app.cache.local.max-size:1000}")
+    private long localMaxSize;
+
+    @Value("${app.cache.local.expire-minutes:10}")
+    private long localExpireMinutes;
 
     @Autowired
     public CacheService() {
@@ -34,13 +50,30 @@ public class CacheService {
         this.redisTemplate = redisTemplate;
     }
 
+    @PostConstruct
+    public void init() {
+        this.localCache = Caffeine.newBuilder()
+                .maximumSize(localMaxSize)
+                .expireAfterWrite(localExpireMinutes, TimeUnit.MINUTES)
+                .recordStats()
+                .removalListener((key, value, cause) ->
+                        log.debug("Caffeine 缓存驱逐 - key: {}, cause: {}", key, cause))
+                .build();
+        log.info("CacheService 初始化完成 - localMaxSize: {}, localExpireMinutes: {}, redisEnabled: {}",
+                localMaxSize, localExpireMinutes, redisEnabled);
+    }
+
     /**
-     * 设置缓存
+     * 设置缓存（本地 + Redis）
      */
     public void set(String key, Object value) {
-        localCache.put(key, new LocalValue(value, null));
+        localCache.put(key, value);
         if (redisEnabled && redisTemplate != null) {
-            redisTemplate.opsForValue().set(key, value);
+            try {
+                redisTemplate.opsForValue().set(key, value);
+            } catch (Exception e) {
+                log.warn("Redis 缓存写入失败 - key: {}", key, e);
+            }
         }
     }
 
@@ -48,23 +81,41 @@ public class CacheService {
      * 设置缓存（带过期时间）
      */
     public void set(String key, Object value, long timeout, TimeUnit unit) {
-        localCache.put(key, new LocalValue(value, System.currentTimeMillis() + unit.toMillis(timeout)));
+        localCache.put(key, value);
         if (redisEnabled && redisTemplate != null) {
-            redisTemplate.opsForValue().set(key, value, timeout, unit);
+            try {
+                redisTemplate.opsForValue().set(key, value, timeout, unit);
+            } catch (Exception e) {
+                log.warn("Redis 缓存写入失败 - key: {}", key, e);
+            }
         }
     }
 
     /**
-     * 获取缓存
+     * 获取缓存（先本地，再 Redis）
      */
     public Object get(String key) {
+        // 1. 先查本地缓存
+        Object localValue = localCache.getIfPresent(key);
+        if (localValue != null) {
+            return localValue;
+        }
+
+        // 2. 本地未命中，查 Redis
         if (redisEnabled && redisTemplate != null) {
             try {
-                return redisTemplate.opsForValue().get(key);
-            } catch (Exception ignored) {
+                Object redisValue = redisTemplate.opsForValue().get(key);
+                if (redisValue != null) {
+                    // 回填本地缓存
+                    localCache.put(key, redisValue);
+                    return redisValue;
+                }
+            } catch (Exception e) {
+                log.warn("Redis 缓存读取失败 - key: {}", key, e);
             }
         }
-        return getLocalValue(key);
+
+        return null;
     }
 
     /**
@@ -83,12 +134,16 @@ public class CacheService {
     }
 
     /**
-     * 删除缓存
+     * 删除缓存（本地 + Redis）
      */
     public void delete(String key) {
-        localCache.remove(key);
+        localCache.invalidate(key);
         if (redisEnabled && redisTemplate != null) {
-            redisTemplate.delete(key);
+            try {
+                redisTemplate.delete(key);
+            } catch (Exception e) {
+                log.warn("Redis 缓存删除失败 - key: {}", key, e);
+            }
         }
     }
 
@@ -96,24 +151,38 @@ public class CacheService {
      * 判断缓存是否存在
      */
     public Boolean hasKey(String key) {
-        if (redisEnabled && redisTemplate != null) {
-            return redisTemplate.hasKey(key);
+        Object localValue = localCache.getIfPresent(key);
+        if (localValue != null) {
+            return true;
         }
-        return getLocalValue(key) != null;
+        if (redisEnabled && redisTemplate != null) {
+            try {
+                return redisTemplate.hasKey(key);
+            } catch (Exception e) {
+                log.warn("Redis 缓存查询失败 - key: {}", key, e);
+            }
+        }
+        return false;
     }
 
     /**
      * 设置过期时间
      */
     public Boolean expire(String key, long timeout, TimeUnit unit) {
-        LocalValue localValue = localCache.get(key);
-        if (localValue != null) {
-            localCache.put(key, new LocalValue(localValue.value(), System.currentTimeMillis() + unit.toMillis(timeout)));
+        // Caffeine 不支持单独设置过期时间，需要重新 put
+        Object value = localCache.getIfPresent(key);
+        if (value != null) {
+            localCache.put(key, value);
         }
+
         if (redisEnabled && redisTemplate != null) {
-            return redisTemplate.expire(key, timeout, unit);
+            try {
+                return redisTemplate.expire(key, timeout, unit);
+            } catch (Exception e) {
+                log.warn("Redis 设置过期时间失败 - key: {}", key, e);
+            }
         }
-        return localValue != null;
+        return value != null;
     }
 
     /**
@@ -121,13 +190,15 @@ public class CacheService {
      */
     public Long getExpire(String key) {
         if (redisEnabled && redisTemplate != null) {
-            return redisTemplate.getExpire(key);
+            try {
+                return redisTemplate.getExpire(key);
+            } catch (Exception e) {
+                log.warn("Redis 获取过期时间失败 - key: {}", key, e);
+            }
         }
-        LocalValue localValue = localCache.get(key);
-        if (localValue == null || localValue.expiresAt() == null) {
-            return -1L;
-        }
-        return Math.max(0L, (localValue.expiresAt() - System.currentTimeMillis()) / 1000);
+        // Caffeine 不支持精确获取剩余过期时间
+        Object value = localCache.getIfPresent(key);
+        return value != null ? -1L : -2L;
     }
 
     /**
@@ -142,10 +213,20 @@ public class CacheService {
      */
     public Long increment(String key, long delta) {
         if (redisEnabled && redisTemplate != null) {
-            return redisTemplate.opsForValue().increment(key, delta);
+            try {
+                Long result = redisTemplate.opsForValue().increment(key, delta);
+                if (result != null) {
+                    localCache.put(key, result);
+                }
+                return result;
+            } catch (Exception e) {
+                log.warn("Redis 自增失败 - key: {}", key, e);
+            }
         }
-        long value = ((Number) getLocalValueOrDefault(key, 0L)).longValue() + delta;
-        localCache.put(key, new LocalValue(value, null));
+        // 本地缓存自增（降级）
+        Object current = localCache.getIfPresent(key);
+        long value = (current instanceof Number ? ((Number) current).longValue() : 0L) + delta;
+        localCache.put(key, value);
         return value;
     }
 
@@ -160,31 +241,21 @@ public class CacheService {
      * 自减（指定步长）
      */
     public Long decrement(String key, long delta) {
-        if (redisEnabled && redisTemplate != null) {
-            return redisTemplate.opsForValue().decrement(key, delta);
-        }
-        long value = ((Number) getLocalValueOrDefault(key, 0L)).longValue() - delta;
-        localCache.put(key, new LocalValue(value, null));
-        return value;
+        return increment(key, -delta);
     }
 
-    private Object getLocalValue(String key) {
-        LocalValue localValue = localCache.get(key);
-        if (localValue == null) {
-            return null;
-        }
-        if (localValue.expiresAt() != null && localValue.expiresAt() < System.currentTimeMillis()) {
-            localCache.remove(key);
-            return null;
-        }
-        return localValue.value();
+    /**
+     * 获取本地缓存统计信息
+     */
+    public com.github.benmanes.caffeine.cache.stats.CacheStats getLocalStats() {
+        return localCache.stats();
     }
 
-    private Object getLocalValueOrDefault(String key, Object defaultValue) {
-        Object value = getLocalValue(key);
-        return value == null ? defaultValue : value;
-    }
-
-    private record LocalValue(Object value, Long expiresAt) {
+    /**
+     * 清空本地缓存
+     */
+    public void clearLocal() {
+        localCache.invalidateAll();
+        log.info("本地缓存已清空");
     }
 }

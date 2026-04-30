@@ -133,7 +133,7 @@ public class BusinessInsightService {
     }
 
     private QueryPlan cashCollection(String queryText, String dimension) {
-        DateRange range = resolveDateRange(queryText, false);
+        DateRange range = resolveDateRange(queryText, "月份".equals(dimension));
         String groupExpr = "月份".equals(dimension)
             ? sqlDialectHelper.monthBucket("record_date")
             : "department";
@@ -203,7 +203,7 @@ public class BusinessInsightService {
     }
 
     private QueryPlan complaintCount(String queryText, String dimension) {
-        DateRange range = resolveDateRange(queryText, false);
+        DateRange range = resolveDateRange(queryText, "月份".equals(dimension));
         String groupExpr = switch (dimension) {
             case "渠道" -> "st.channel";
             case "月份" -> sqlDialectHelper.monthBucket("st.created_date");
@@ -230,7 +230,7 @@ public class BusinessInsightService {
     }
 
     private QueryPlan workHourUtilization(String queryText, String dimension) {
-        DateRange range = resolveDateRange(queryText, false);
+        DateRange range = resolveDateRange(queryText, "月份".equals(dimension));
         String groupExpr = switch (dimension) {
             case "角色" -> "tm.role";
             case "月份" -> sqlDialectHelper.monthBucket("COALESCE(s.completed_at, s.created_at)");
@@ -250,7 +250,7 @@ public class BusinessInsightService {
     }
 
     private QueryPlan approvalDuration(String queryText, String dimension) {
-        DateRange range = resolveDateRange(queryText, false);
+        DateRange range = resolveDateRange(queryText, "月份".equals(dimension));
         String groupExpr = "月份".equals(dimension)
             ? sqlDialectHelper.monthBucket("start_time")
             : "department";

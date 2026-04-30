@@ -170,6 +170,10 @@ app:
       max-lifetime: ${DS_POOL_MAX_LIFETIME:1800000}
       cache-expire-minutes: ${DS_POOL_CACHE_EXPIRE_MINUTES:60}
 
+  # 数据脱敏加密密钥（生产环境使用环境变量）
+  masking:
+    encrypt-key: ${MASKING_ENCRYPT_KEY:chatbi-masking-key-2026}
+
   # 跨域配置
   cors:
     enabled: true

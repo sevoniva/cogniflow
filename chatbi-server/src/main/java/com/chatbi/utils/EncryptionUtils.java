@@ -49,6 +49,30 @@ public final class EncryptionUtils {
         }
     }
 
+    /**
+     * SHA-256 哈希（不可逆，用于数据脱敏等场景）
+     */
+    public static String sha256(String input) {
+        if (input == null || input.isBlank()) {
+            return input;
+        }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception ex) {
+            throw new IllegalStateException("SHA-256 哈希失败", ex);
+        }
+    }
+
     private static SecretKeySpec buildKey(String secret) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(secret.getBytes(StandardCharsets.UTF_8));

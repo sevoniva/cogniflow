@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.chatbi.entity.DataMaskingRule;
 import com.chatbi.repository.DataMaskingRuleMapper;
 import com.chatbi.repository.SysUserMapper;
+import com.chatbi.utils.EncryptionUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,9 @@ public class DataMaskingService {
 
     private final DataMaskingRuleMapper dataMaskingRuleMapper;
     private final SysUserMapper sysUserMapper;
+
+    @Value("${app.masking.encrypt-key:chatbi-masking-key-2026}")
+    private String maskingEncryptKey;
 
     private static final Pattern PHONE_PATTERN = Pattern.compile("^1[3-9]\\d{9}$");
     private static final Pattern ID_CARD_PATTERN = Pattern.compile("^[1-9]\\d{5}(18|19|20)\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\d{3}[\\dXx]$");
@@ -180,10 +185,12 @@ public class DataMaskingService {
             return applyPartialMask(pattern, value);
         }
         if ("HASH".equals(effectiveType)) {
-            return String.valueOf(value.hashCode());
+            // 改造：使用 SHA-256 真正的哈希，替代不安全的 hashCode()
+            return EncryptionUtils.sha256(value);
         }
         if ("ENCRYPT".equals(effectiveType)) {
-            return new StringBuilder(value).reverse().toString();
+            // 改造：使用 AES 加密，替代不安全的字符串反转
+            return EncryptionUtils.encrypt(value, maskingEncryptKey);
         }
         return value;
     }

@@ -90,8 +90,8 @@ app:
     redis:
       expire-minutes: ${CACHE_REDIS_EXPIRE_MINUTES:30}
   jwt:
-    # 密钥（生产环境使用环境变量）
-    secret: ${JWT_SECRET:chatbi-enterprise-secret-key-min-256-bit-for-jwt-signing}
+    # 密钥（生产环境必须通过环境变量设置）
+    secret: ${JWT_SECRET:dev-only-jwt-secret-do-not-use-in-production-change-me}
     # Token 有效期（毫秒）
     expiration: 3600000
     # Refresh Token 有效期（毫秒）

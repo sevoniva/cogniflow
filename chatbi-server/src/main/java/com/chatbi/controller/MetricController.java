@@ -17,7 +17,6 @@ import java.util.List;
 @Tag(name = "指标管理", description = "指标管理接口 - 对应前端 IAdminService 指标部分")
 @RestController
 @RequestMapping("/api/metrics")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class MetricController {
 

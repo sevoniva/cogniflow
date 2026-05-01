@@ -1,4 +1,5 @@
 import type { ApiResponse } from '@/types'
+import { useUserStore } from '@/stores/user'
 import { ofetch, type FetchOptions } from 'ofetch'
 import { z } from 'zod'
 
@@ -89,6 +90,16 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     headers.set('Content-Type', 'application/json')
   }
 
+  // 注入 JWT token
+  try {
+    const userStore = useUserStore()
+    if (userStore.token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${userStore.token}`)
+    }
+  } catch {
+    // store 未初始化时忽略
+  }
+
   try {
     const response = await fetchWithTimeout(url, {
       ...options,
@@ -140,6 +151,14 @@ export const $http = ofetch.create({
     const isJsonBody = options.body !== undefined && !(options.body instanceof FormData)
     if (isJsonBody && !headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json')
+    }
+    try {
+      const userStore = useUserStore()
+      if (userStore.token && !headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${userStore.token}`)
+      }
+    } catch {
+      // store 未初始化时忽略
     }
     options.headers = headers
   },
@@ -230,12 +249,24 @@ export async function streamRequest(
       ? normalizedPath
       : `${API_BASE}${normalizedPath}`
 
+  const extraHeaders: Record<string, string> = {
+    'Accept': 'text/event-stream',
+    'Content-Type': 'application/json'
+  }
+  try {
+    const userStore = useUserStore()
+    if (userStore.token) {
+      extraHeaders['Authorization'] = `Bearer ${userStore.token}`
+    }
+  } catch {
+    // store 未初始化时忽略
+  }
+
   const response = await fetch(url, {
     ...options,
     headers: {
       ...((options.headers as Record<string, string>) || {}),
-      'Accept': 'text/event-stream',
-      'Content-Type': 'application/json'
+      ...extraHeaders
     },
     signal: options.signal
   })

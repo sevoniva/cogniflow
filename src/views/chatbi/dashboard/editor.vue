@@ -525,23 +525,32 @@ function pickPreferredTable(list: string[]) {
 }
 
 function quoteValue(value: string) {
-  return `'${String(value).replace(/'/g, "''")}'`
+  return `'${String(value).replace(/'/g, "''").replace(/;/g, '')}'`
+}
+
+function sanitizeIdentifier(name: string) {
+  return String(name).replace(/[^a-zA-Z0-9_.]/g, '')
 }
 
 function buildWhereClause(filters: DashboardComponent['filters']) {
   const conditions = (filters || [])
     .filter(filter => filter.field && filter.operator)
     .map(filter => {
+      const field = sanitizeIdentifier(filter.field)
       if (filter.operator === 'IS NULL' || filter.operator === 'IS NOT NULL') {
-        return `${filter.field} ${filter.operator}`
+        return `${field} ${filter.operator}`
       }
       if (filter.operator === 'LIKE') {
-        return `${filter.field} LIKE ${quoteValue(`%${filter.value}%`)}`
+        return `${field} LIKE ${quoteValue(`%${filter.value}%`)}`
       }
       if (filter.operator === 'IN') {
-        return `${filter.field} IN (${filter.value})`
+        const values = String(filter.value)
+          .split(',')
+          .map(v => quoteValue(v.trim()))
+          .join(', ')
+        return `${field} IN (${values})`
       }
-      return `${filter.field} ${filter.operator} ${quoteValue(filter.value)}`
+      return `${field} ${filter.operator} ${quoteValue(filter.value)}`
     })
 
   return conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''

@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 
 // 用户侧页面 - 懒加载
 const QueryHome = () => import('@/views/chatbi/query/index.vue')
@@ -31,6 +32,7 @@ const AgileDashboard = () => import('@/views/AgileDashboard.vue')
 const SalesDashboard = () => import('@/views/SalesDashboard.vue')
 const OperationDashboard = () => import('@/views/OperationDashboard.vue')
 const HomePage = () => import('@/views/HomePage.vue')
+const LoginPage = () => import('@/views/LoginPage.vue')
 const ConversationQuery = () => import('@/views/ConversationQuery.vue')
 
 const router = createRouter({
@@ -41,6 +43,12 @@ const router = createRouter({
       name: 'HomePage',
       component: HomePage,
       meta: { title: '首页' }
+    },
+    {
+      path: '/login',
+      name: 'Login',
+      component: LoginPage,
+      meta: { title: '登录', public: true }
     },
     // 用户侧
     {
@@ -206,15 +214,21 @@ const router = createRouter({
   ]
 })
 
-// 路由守卫 - 设置页面标题
+// 路由守卫 - 认证 + 页面标题
 router.beforeEach((to, _from, next) => {
   const title = to.meta.title as string
-  if (title) {
-    document.title = `${title} - Chat BI`
+  document.title = title ? `${title} - Chat BI` : 'Chat BI'
+
+  const userStore = useUserStore()
+  const isPublic = to.meta.public === true
+
+  if (!isPublic && !userStore.isLoggedIn) {
+    next({ name: 'Login', query: { redirect: to.fullPath } })
+  } else if (to.name === 'Login' && userStore.isLoggedIn) {
+    next({ name: 'HomePage' })
   } else {
-    document.title = 'Chat BI'
+    next()
   }
-  next()
 })
 
 export default router

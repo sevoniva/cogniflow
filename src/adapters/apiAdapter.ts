@@ -24,9 +24,25 @@ import {
   request,
   slugifyCode
 } from '@/utils/http'
+import { useUserStore } from '@/stores/user'
 
-const DEFAULT_USER_ID = 1
-const DEFAULT_USERNAME = 'admin'
+function getCurrentUserId(): number {
+  try {
+    const store = useUserStore()
+    return store.userInfo?.id ?? 1
+  } catch {
+    return 1
+  }
+}
+
+function getCurrentUsername(): string {
+  try {
+    const store = useUserStore()
+    return store.userInfo?.username ?? 'admin'
+  } catch {
+    return 'admin'
+  }
+}
 const MAX_RECENT = 10
 const PAGE_SIZE = 100
 
@@ -102,8 +118,8 @@ function mapSubscription(item: any): Subscription {
     title: item.title || '',
     type: item.type || 'DASHBOARD',
     resourceId: Number(item.resourceId || 0),
-    subscriberId: Number(item.subscriberId || DEFAULT_USER_ID),
-    subscriberName: item.subscriberName || DEFAULT_USERNAME,
+    subscriberId: Number(item.subscriberId || getCurrentUserId()),
+    subscriberName: item.subscriberName || getCurrentUsername(),
     pushMethod: item.pushMethod || 'EMAIL',
     receiver: item.receiver || '',
     frequency: item.frequency || 'DAILY',
@@ -142,12 +158,12 @@ async function getQueryHistoryById(id: number): Promise<QueryHistoryEntity | und
 }
 
 async function getRecentQueryHistory(limit = MAX_RECENT): Promise<QueryHistoryEntity[]> {
-  const response = await request<QueryHistoryEntity[]>(`/query-history/recent?userId=${DEFAULT_USER_ID}&limit=${limit}`)
+  const response = await request<QueryHistoryEntity[]>(`/query-history/recent?userId=${getCurrentUserId()}&limit=${limit}`)
   return response.success ? extractRecords<QueryHistoryEntity>(response.data) : []
 }
 
 async function getFavoriteQueryHistory(): Promise<QueryHistoryEntity[]> {
-  const response = await request<QueryHistoryEntity[]>(`/query-history/favorites?userId=${DEFAULT_USER_ID}`)
+  const response = await request<QueryHistoryEntity[]>(`/query-history/favorites?userId=${getCurrentUserId()}`)
   return response.success ? extractRecords<QueryHistoryEntity>(response.data) : []
 }
 
@@ -155,8 +171,8 @@ async function createHistoryRecord(text: string, overrides: Partial<QueryHistory
   return request<QueryHistoryEntity>('/query-history', {
     method: 'POST',
     body: JSON.stringify({
-      userId: DEFAULT_USER_ID,
-      username: DEFAULT_USERNAME,
+      userId: getCurrentUserId(),
+      username: getCurrentUsername(),
       queryName: overrides.queryName || shortenText(text),
       queryType: 'NATURAL_LANGUAGE',
       queryContent: text,
@@ -459,9 +475,9 @@ export const apiAdminService: IAdminService = {
       method: 'POST',
       body: JSON.stringify({
         ...requestData,
-        subscriberId: DEFAULT_USER_ID,
-        subscriberName: DEFAULT_USERNAME,
-        createdBy: DEFAULT_USER_ID,
+        subscriberId: getCurrentUserId(),
+        subscriberName: getCurrentUsername(),
+        createdBy: getCurrentUserId(),
         status: requestData.status ?? 1
       })
     })
@@ -479,9 +495,9 @@ export const apiAdminService: IAdminService = {
       body: JSON.stringify({
         ...current.data,
         ...updates,
-        subscriberId: current.data.subscriberId || DEFAULT_USER_ID,
-        subscriberName: current.data.subscriberName || DEFAULT_USERNAME,
-        createdBy: current.data.createdBy || DEFAULT_USER_ID,
+        subscriberId: current.data.subscriberId || getCurrentUserId(),
+        subscriberName: current.data.subscriberName || getCurrentUsername(),
+        createdBy: current.data.createdBy || getCurrentUserId(),
         status: updates.status ?? current.data.status ?? 1
       })
     })
@@ -519,8 +535,8 @@ export const apiAdminService: IAdminService = {
         ...requestData,
         shareMethod: 'LINK',
         validityType: requestData.expireTime ? 'DATE_RANGE' : 'PERMANENT',
-        createdBy: DEFAULT_USER_ID,
-        creatorName: DEFAULT_USERNAME,
+        createdBy: getCurrentUserId(),
+        creatorName: getCurrentUsername(),
         status: requestData.status ?? 1
       })
     })
@@ -540,8 +556,8 @@ export const apiAdminService: IAdminService = {
         ...updates,
         shareMethod: current.data.shareMethod || 'LINK',
         validityType: updates.expireTime ? 'DATE_RANGE' : (current.data.validityType || 'PERMANENT'),
-        createdBy: current.data.createdBy || DEFAULT_USER_ID,
-        creatorName: current.data.creatorName || DEFAULT_USERNAME,
+        createdBy: current.data.createdBy || getCurrentUserId(),
+        creatorName: current.data.creatorName || getCurrentUsername(),
         status: updates.status ?? current.data.status ?? 1
       })
     })

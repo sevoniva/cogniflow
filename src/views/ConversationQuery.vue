@@ -446,6 +446,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { useLocalStorage } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 import {
@@ -609,6 +610,7 @@ const PREFERRED_CHART_STORAGE_KEY = 'chatbi.preferredChartType'
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 
 const messages = ref<ConversationMessage[]>([])
 const inputMessage = ref('')
@@ -1048,7 +1050,7 @@ async function loadCapabilities() {
 }
 
 async function loadConversationList() {
-  const data = await request<ConversationListItem[]>(`${API_BASE}/list?userId=1`)
+  const data = await request<ConversationListItem[]>(`${API_BASE}/list?userId=${userStore.userInfo?.id ?? 1}`)
   if (data.success && data.data) {
     conversationList.value = data.data
   }
@@ -1086,7 +1088,7 @@ async function sendMessage(message: string) {
       body: JSON.stringify({
         conversationId: currentConversationId.value || undefined,
         message,
-        userId: 1
+        userId: userStore.userInfo?.id ?? 1
       })
     })
 
@@ -1162,7 +1164,7 @@ async function sendMessageStream(message: string) {
         body: JSON.stringify({
           conversationId: currentConversationId.value || undefined,
           message,
-          userId: 1
+          userId: userStore.userInfo?.id ?? 1
         })
       },
       (chunk) => {

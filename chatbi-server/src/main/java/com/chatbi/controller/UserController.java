@@ -75,8 +75,12 @@ public class UserController {
     @PreAuthorize("hasAuthority('system:user:update')")
     public Result<Void> resetPassword(
             @PathVariable Long id,
-            @RequestParam String newPassword
+            @RequestBody java.util.Map<String, String> body
     ) {
+        String newPassword = body.get("newPassword");
+        if (newPassword == null || newPassword.isBlank()) {
+            return Result.error("新密码不能为空");
+        }
         userService.resetPassword(id, newPassword);
         return Result.ok("密码重置成功", null);
     }
@@ -87,9 +91,13 @@ public class UserController {
     @Operation(summary = "修改密码")
     @PostMapping("/password/change")
     public Result<Void> changePassword(
-            @RequestParam String oldPassword,
-            @RequestParam String newPassword
+            @RequestBody java.util.Map<String, String> body
     ) {
+        String oldPassword = body.get("oldPassword");
+        String newPassword = body.get("newPassword");
+        if (oldPassword == null || newPassword == null) {
+            return Result.error("密码不能为空");
+        }
         Long userId = getCurrentUserId();
         if (userId == null) {
             return Result.error("未找到当前用户信息");

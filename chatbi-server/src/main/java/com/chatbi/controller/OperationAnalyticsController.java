@@ -21,7 +21,6 @@ import java.util.*;
 @Tag(name = "运营分析", description = "运营分析控制器")
 @RestController
 @RequestMapping("/api/analytics/operation")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class OperationAnalyticsController {
 

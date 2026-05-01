@@ -35,7 +35,6 @@ import java.util.*;
 @Tag(name = "用户查询", description = "用户侧查询接口 - 对应前端 IChatbiService 查询部分")
 @RestController
 @RequestMapping("/api/query")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class QueryController {
 

@@ -9,6 +9,7 @@ import com.chatbi.repository.DataSourceMapper;
 import com.chatbi.utils.EncryptionUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,10 +30,9 @@ import java.util.Map;
 public class DataSourceService {
 
     private final DataSourceMapper dataSourceMapper;
-    /**
-     * 加密密钥（生产环境应使用环境变量）
-     */
-    private static final String ENCRYPTION_KEY = "chatbi-encryption-key-2026";
+
+    @Value("${app.masking.encrypt-key}")
+    private String encryptionKey;
 
     /**
      * 分页查询数据源列表
@@ -97,7 +97,7 @@ public class DataSourceService {
 
         // 加密密码
         if (dataSource.getPasswordEncrypted() != null) {
-            String encrypted = EncryptionUtils.encrypt(dataSource.getPasswordEncrypted(), ENCRYPTION_KEY);
+            String encrypted = EncryptionUtils.encrypt(dataSource.getPasswordEncrypted(), encryptionKey);
             dataSource.setPasswordEncrypted(encrypted);
         }
 
@@ -115,7 +115,7 @@ public class DataSourceService {
 
         // 如果密码被修改，重新加密
         if (dataSource.getPasswordEncrypted() != null && !dataSource.getPasswordEncrypted().startsWith("***")) {
-            String encrypted = EncryptionUtils.encrypt(dataSource.getPasswordEncrypted(), ENCRYPTION_KEY);
+            String encrypted = EncryptionUtils.encrypt(dataSource.getPasswordEncrypted(), encryptionKey);
             dataSource.setPasswordEncrypted(encrypted);
         } else {
             // 保留原密码
@@ -364,7 +364,7 @@ public class DataSourceService {
             return "";
         }
         try {
-            return EncryptionUtils.decrypt(encryptedOrPlainText, ENCRYPTION_KEY);
+            return EncryptionUtils.decrypt(encryptedOrPlainText, encryptionKey);
         } catch (Exception ex) {
             log.debug("数据源密码不是密文，按明文处理");
             return encryptedOrPlainText;

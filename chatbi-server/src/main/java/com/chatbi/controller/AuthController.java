@@ -52,8 +52,12 @@ public class AuthController {
      */
     @Operation(summary = "刷新 Token")
     @PostMapping("/refresh")
-    public Result<String> refreshToken(@RequestParam String refreshToken) {
-        String newToken = authService.refreshToken(refreshToken);
+    public Result<String> refreshToken(@RequestBody java.util.Map<String, String> body) {
+        String token = body.get("refreshToken");
+        if (token == null || token.isBlank()) {
+            return Result.error("refreshToken 不能为空");
+        }
+        String newToken = authService.refreshToken(token);
         return Result.ok("刷新成功", newToken);
     }
 

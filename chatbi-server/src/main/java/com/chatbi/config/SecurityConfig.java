@@ -40,6 +40,8 @@ public class SecurityConfig {
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
     @Value("${app.security.dev-permit-all-api:false}")
     private boolean devPermitAllApi;
+    @Value("${app.cors.allowed-origins:http://localhost:8080}")
+    private String allowedOrigins;
 
     /**
      * 安全过滤链配置
@@ -85,9 +87,10 @@ public class SecurityConfig {
                 .requestMatchers(new AntPathRequestMatcher("/*.ico")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/*.html")).permitAll()
 
-                // 健康检查和监控端点
+                // 健康检查
                 .requestMatchers(new AntPathRequestMatcher("/api/health/**")).permitAll()
-                .requestMatchers(new AntPathRequestMatcher("/actuator/**")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/actuator/health")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/actuator/info")).permitAll()
 
                 // Swagger 文档
                 .requestMatchers(new AntPathRequestMatcher("/v3/api-docs/**")).permitAll()
@@ -129,8 +132,12 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // 允许的源（生产环境应配置具体域名）
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        // 从配置读取允许的源
+        configuration.setAllowedOriginPatterns(
+            java.util.Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .toList()
+        );
 
         // 允许的方法
         configuration.setAllowedMethods(Arrays.asList(

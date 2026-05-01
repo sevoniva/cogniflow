@@ -33,7 +33,6 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
-    private static final String DATASOURCE_ENCRYPTION_KEY = "chatbi-encryption-key-2026";
     private static final Pattern MYSQL_URL_PATTERN = Pattern.compile("^jdbc:mysql://([^:/?#]+)(?::(\\d+))?/([^?]+).*$");
 
     private final MetricMapper metricMapper;
@@ -42,6 +41,8 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final DataSource dataSource;
     private final AiProviderSettingService aiProviderSettingService;
+    @Value("${app.masking.encrypt-key}")
+    private String datasourceEncryptionKey;
     @Value("${spring.datasource.url:}")
     private String primaryDatasourceUrl;
     @Value("${spring.datasource.username:}")
@@ -81,13 +82,13 @@ public class DataInitializer implements CommandLineRunner {
                     "INSERT INTO sys_user (username, password, nick_name, status, is_admin, email) VALUES (?, ?, ?, ?, ?, ?)",
                     "admin", encodedPassword, "超级管理员", 1, 1, "admin@chatbi.com"
                 );
-                log.info("已创建默认管理员账号：admin / Admin@123");
+                log.info("已创建默认管理员账号：admin");
             } else {
                 jdbcTemplate.update(
                     "UPDATE sys_user SET password = ?, status = 1, is_admin = 1, deleted_at = NULL WHERE username = 'admin'",
                     encodedPassword
                 );
-                log.info("已重置管理员账号密码：admin / Admin@123");
+                log.info("已重置管理员账号密码：admin");
             }
         } catch (BadSqlGrammarException ex) {
             log.warn("sys_user 表不存在，跳过默认管理员账号初始化");
@@ -213,7 +214,7 @@ public class DataInitializer implements CommandLineRunner {
         if (plainPassword == null || plainPassword.isBlank()) {
             return null;
         }
-        return EncryptionUtils.encrypt(plainPassword, DATASOURCE_ENCRYPTION_KEY);
+        return EncryptionUtils.encrypt(plainPassword, datasourceEncryptionKey);
     }
 
     private String inferType(String jdbcUrl) {

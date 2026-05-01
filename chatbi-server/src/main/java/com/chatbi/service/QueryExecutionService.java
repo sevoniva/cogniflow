@@ -30,18 +30,14 @@ import java.util.concurrent.TimeUnit;
 /**
  * 查询执行服务
  * 用于执行动态 SQL 查询和提取数据库元数据
- *
- * 改造说明：
- * - 将无限增长的 ConcurrentHashMap 替换为 Caffeine 缓存（支持过期自动清理）
- * - 添加连接池健康检查（定时清理失效连接池）
- * - 连接池配置参数化
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class QueryExecutionService {
 
-    private static final String ENCRYPTION_KEY = "chatbi-encryption-key-2026";
+    @Value("${app.masking.encrypt-key}")
+    private String encryptionKey;
 
     private final javax.sql.DataSource defaultDataSource;
     private final QueryCacheService queryCacheService;
@@ -444,7 +440,7 @@ public class QueryExecutionService {
             return null;
         }
         try {
-            return EncryptionUtils.decrypt(password, ENCRYPTION_KEY);
+            return EncryptionUtils.decrypt(password, encryptionKey);
         } catch (Exception e) {
             log.debug("数据源密码不是密文，按明文使用 - dataSource: {}", dataSource.getName());
             return password;

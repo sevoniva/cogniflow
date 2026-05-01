@@ -21,7 +21,6 @@ import java.util.Map;
 @Tag(name = "企业级图表目录", description = "企业级图表目录接口")
 @RestController
 @RequestMapping("/api/chart-catalog")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class ChartCatalogController {
 

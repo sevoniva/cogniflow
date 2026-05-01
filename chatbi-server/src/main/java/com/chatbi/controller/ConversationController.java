@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 @Tag(name = "多轮对话", description = "多轮对话控制器")
 @RestController
 @RequestMapping("/api/conversation")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class ConversationController {
 

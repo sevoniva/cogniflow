@@ -49,6 +49,9 @@ public class UserService {
             throw BusinessException.dataDuplicate("用户名");
         }
 
+        // 校验密码强度
+        validatePassword(user.getPassword());
+
         // 加密密码
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
@@ -90,6 +93,7 @@ public class UserService {
     @Transactional(rollbackFor = Exception.class)
     public void resetPassword(Long id, String newPassword) {
         SysUser user = getById(id);
+        validatePassword(newPassword);
 
         SysUser updateUser = new SysUser();
         updateUser.setId(id);
@@ -111,6 +115,8 @@ public class UserService {
             throw BusinessException.userPasswordError();
         }
 
+        validatePassword(newPassword);
+
         // 更新密码
         SysUser updateUser = new SysUser();
         updateUser.setId(userId);
@@ -118,6 +124,24 @@ public class UserService {
 
         sysUserMapper.updateById(updateUser);
         log.info("修改用户密码成功：{}", user.getUsername());
+    }
+
+    /**
+     * 校验密码强度
+     */
+    private void validatePassword(String password) {
+        if (password == null || password.length() < 8) {
+            throw new com.chatbi.common.exception.BusinessException("密码长度不能少于 8 位");
+        }
+        if (!password.matches(".*[A-Z].*")) {
+            throw new com.chatbi.common.exception.BusinessException("密码必须包含大写字母");
+        }
+        if (!password.matches(".*[a-z].*")) {
+            throw new com.chatbi.common.exception.BusinessException("密码必须包含小写字母");
+        }
+        if (!password.matches(".*\\d.*")) {
+            throw new com.chatbi.common.exception.BusinessException("密码必须包含数字");
+        }
     }
 
     /**

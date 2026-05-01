@@ -19,7 +19,6 @@ import java.util.*;
 @Tag(name = "智能分析", description = "智能分析控制器")
 @RestController
 @RequestMapping("/api/intelligence")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class IntelligenceController {
 

@@ -17,7 +17,6 @@ import java.util.List;
 @Tag(name = "同义词管理", description = "同义词管理接口 - 对应前端 IAdminService 同义词部分")
 @RestController
 @RequestMapping("/api/synonyms")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class SynonymController {
 

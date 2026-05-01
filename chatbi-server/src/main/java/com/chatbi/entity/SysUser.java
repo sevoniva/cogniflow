@@ -1,6 +1,7 @@
 package com.chatbi.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,6 +34,7 @@ public class SysUser {
     /**
      * 密码（BCrypt 加密）
      */
+    @JsonIgnore
     private String password;
 
     /**

@@ -511,6 +511,7 @@ const emit = defineEmits<{
   openDataPreview: [msg: ConversationMessage]
   registerChartRef: [index: number, element: HTMLDivElement | null]
   diagnosisAction: [action: string]
+  feedback: [payload: { messageId: string; conversationId: string; question: string; generatedSql: string; rating: number; correctSql: string; comment: string }]
 }>()
 
 const expanded = ref(false)

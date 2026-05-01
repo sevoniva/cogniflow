@@ -65,6 +65,21 @@ public class Metric {
     private String aggregation;
 
     /**
+     * 指标 SQL 模板（Headless BI：cubeSql 包含占位符如 {{timeFilter}} {{dimension}}）
+     */
+    private String cubeSql;
+
+    /**
+     * 维度定义 JSON，如：[{"field":"region","name":"地区"},{"field":"created_at","name":"时间"}]
+     */
+    private String dimensions;
+
+    /**
+     * 度量定义 JSON，如：[{"field":"amount","aggregation":"SUM","name":"销售额"}]
+     */
+    private String measures;
+
+    /**
      * 状态 (active/inactive)
      */
     @Builder.Default

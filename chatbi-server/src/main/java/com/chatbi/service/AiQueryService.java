@@ -30,6 +30,7 @@ public class AiQueryService {
     private final AiConfig aiConfig;
     private final SqlGenerationService sqlGenerationService;
     private final QueryGovernanceService queryGovernanceService;
+    private final MetricCubeService metricCubeService;
 
     /**
      * 表结构信息
@@ -72,19 +73,26 @@ public class AiQueryService {
 
     /**
      * 使用 LLM 生成 SQL（支持 Prompt 版本灰度 A/B 测试）
+     *
+     * Month 3 Week 1：优先尝试 MetricCube（Headless BI），命中则直接返回统一口径 SQL。
      */
     public String generateSqlWithLLM(String naturalLanguage, List<TableSchema> schemas, Long userId) {
         try {
-            // 检查AI是否启用
+            // 1. 优先尝试 Headless BI MetricCube
+            String cubeSql = metricCubeService.tryResolve(naturalLanguage);
+            if (cubeSql != null) {
+                log.info("MetricCube 命中 - question: {}, sql: {}", naturalLanguage, cubeSql);
+                return cubeSql;
+            }
+
+            // 2. 检查AI是否启用
             if (!aiConfig.isEnabled()) {
                 throw new RuntimeException("AI功能未启用");
             }
 
-            // 获取当前配置的提供商
+            // 3. 使用 LLM 生成 SQL
             AiConfig.ProviderConfig provider = aiConfig.getCurrentProvider();
             log.info("使用AI提供商: {}, 模型: {}, userId: {}", provider.getName(), provider.getModel(), userId);
-
-            // 使用 LangChain4j PromptTemplate 生成 SQL（带 userId 灰度）
             return sqlGenerationService.generateSql(naturalLanguage, schemas, userId, provider.getName());
 
         } catch (Exception e) {

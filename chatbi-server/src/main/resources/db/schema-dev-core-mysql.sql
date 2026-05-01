@@ -354,3 +354,8 @@ CREATE TABLE IF NOT EXISTS feedback (
     INDEX idx_feedback_conversation_id (conversation_id),
     INDEX idx_feedback_exported (exported)
 );
+
+-- Month 3 Week 1: Headless BI MetricCube 字段扩展
+ALTER TABLE metrics ADD COLUMN IF NOT EXISTS cube_sql LONGTEXT;
+ALTER TABLE metrics ADD COLUMN IF NOT EXISTS dimensions LONGTEXT;
+ALTER TABLE metrics ADD COLUMN IF NOT EXISTS measures LONGTEXT;

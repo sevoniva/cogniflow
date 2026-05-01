@@ -169,9 +169,9 @@ function remove(id: number) {
     cancelButtonText: '取消',
     type: 'warning',
     confirmButtonClass: 'el-button--danger'
-  }).then(() => {
-    chatbiService.deleteQuery(id)
-    load()
+  }).then(async () => {
+    await chatbiService.deleteQuery(id)
+    await load()
     ElMessage.success('已删除')
   }).catch(() => {})
 }
@@ -182,9 +182,9 @@ function clearAll() {
     cancelButtonText: '取消',
     type: 'warning',
     confirmButtonClass: 'el-button--danger'
-  }).then(() => {
-    chatbiService.clearRecentQueries()
-    load()
+  }).then(async () => {
+    await chatbiService.clearRecentQueries()
+    await load()
     ElMessage.success('已清空所有历史记录')
   }).catch(() => {})
 }

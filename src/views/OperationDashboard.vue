@@ -119,10 +119,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import * as echarts from 'echarts'
 import { User, UserFilled, Plus, DataAnalysis } from '@element-plus/icons-vue'
 import { request } from '@/utils/http'
+
+const chartInstances: echarts.ECharts[] = []
+onBeforeUnmount(() => {
+  chartInstances.forEach(c => c.dispose())
+  chartInstances.length = 0
+})
 
 const API_BASE = '/analytics/operation'
 
@@ -163,7 +169,7 @@ const loadUserActivity = async () => {
     const data = await getAnalytics('/user-activity')
     if (data.success && data.data) {
       const chartData = data.data.reverse()
-      const chart = echarts.init(activityChart.value)
+      const chart = echarts.init(activityChart.value); chartInstances.push(chart)
       chart.setOption({
         tooltip: { trigger: 'axis' },
         legend: { data: ['日活用户', '事件数'] },
@@ -200,7 +206,7 @@ const loadChannelAnalysis = async () => {
   try {
     const data = await getAnalytics('/channel-analysis')
     if (data.success && data.data) {
-      const chart = echarts.init(channelChart.value)
+      const chart = echarts.init(channelChart.value); chartInstances.push(chart)
       chart.setOption({
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         legend: { data: ['用户数', '事件数', '转化数'] },
@@ -247,7 +253,7 @@ const loadDeviceAnalysis = async () => {
         return acc
       }, [])
 
-      const chart = echarts.init(deviceChart.value)
+      const chart = echarts.init(deviceChart.value); chartInstances.push(chart)
       chart.setOption({
         tooltip: { trigger: 'item' },
         legend: { orient: 'vertical', left: 'left' },
@@ -276,7 +282,7 @@ const loadEventAnalysis = async () => {
   try {
     const data = await getAnalytics('/event-analysis')
     if (data.success && data.data) {
-      const chart = echarts.init(eventChart.value)
+      const chart = echarts.init(eventChart.value); chartInstances.push(chart)
       chart.setOption({
         tooltip: { trigger: 'item' },
         legend: { orient: 'vertical', left: 'left' },
@@ -308,7 +314,7 @@ const loadRegionAnalysis = async () => {
   try {
     const data = await getAnalytics('/region-analysis')
     if (data.success && data.data) {
-      const chart = echarts.init(regionChart.value)
+      const chart = echarts.init(regionChart.value); chartInstances.push(chart)
       chart.setOption({
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         xAxis: { type: 'value' },
@@ -347,7 +353,7 @@ const loadUserRegistration = async () => {
 
       monthData.sort((a: any, b: any) => a.month.localeCompare(b.month))
 
-      const chart = echarts.init(registrationChart.value)
+      const chart = echarts.init(registrationChart.value); chartInstances.push(chart)
       chart.setOption({
         tooltip: { trigger: 'axis' },
         xAxis: { type: 'category', data: monthData.map((item: any) => item.month) },

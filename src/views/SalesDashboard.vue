@@ -119,10 +119,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import * as echarts from 'echarts'
 import { TrendCharts, Money, Document, User } from '@element-plus/icons-vue'
 import { request } from '@/utils/http'
+
+const chartInstances: echarts.ECharts[] = []
+onBeforeUnmount(() => {
+  chartInstances.forEach(c => c.dispose())
+  chartInstances.length = 0
+})
 
 const API_BASE = '/analytics/sales'
 
@@ -163,7 +169,7 @@ const loadSalesTrend = async () => {
     const data = await getAnalytics('/trend')
     if (data.success && data.data) {
       const chartData = data.data.reverse()
-      const chart = echarts.init(trendChart.value)
+      const chart = echarts.init(trendChart.value); chartInstances.push(chart)
       chart.setOption({
         tooltip: { trigger: 'axis' },
         legend: { data: ['销售额', '利润'] },
@@ -196,7 +202,7 @@ const loadRegionDistribution = async () => {
   try {
     const data = await getAnalytics('/region-distribution')
     if (data.success && data.data) {
-      const chart = echarts.init(regionChart.value)
+      const chart = echarts.init(regionChart.value); chartInstances.push(chart)
       chart.setOption({
         tooltip: { trigger: 'item' },
         legend: { orient: 'vertical', left: 'left' },
@@ -228,7 +234,7 @@ const loadProductRanking = async () => {
   try {
     const data = await getAnalytics('/product-ranking?limit=10')
     if (data.success && data.data) {
-      const chart = echarts.init(productChart.value)
+      const chart = echarts.init(productChart.value); chartInstances.push(chart)
       chart.setOption({
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         xAxis: { type: 'value' },
@@ -254,7 +260,7 @@ const loadCategoryAnalysis = async () => {
   try {
     const data = await getAnalytics('/category-analysis')
     if (data.success && data.data) {
-      const chart = echarts.init(categoryChart.value)
+      const chart = echarts.init(categoryChart.value); chartInstances.push(chart)
       chart.setOption({
         tooltip: { trigger: 'axis' },
         legend: { data: ['销售额', '利润'] },
@@ -288,7 +294,7 @@ const loadSalespersonRanking = async () => {
   try {
     const data = await getAnalytics('/salesperson-ranking?limit=10')
     if (data.success && data.data) {
-      const chart = echarts.init(salespersonChart.value)
+      const chart = echarts.init(salespersonChart.value); chartInstances.push(chart)
       chart.setOption({
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         xAxis: { type: 'value' },
@@ -314,7 +320,7 @@ const loadOrderStatus = async () => {
   try {
     const data = await getAnalytics('/order-status')
     if (data.success && data.data) {
-      const chart = echarts.init(statusChart.value)
+      const chart = echarts.init(statusChart.value); chartInstances.push(chart)
       chart.setOption({
         tooltip: { trigger: 'item' },
         legend: { orient: 'vertical', left: 'left' },

@@ -123,14 +123,14 @@ function rename(item: QueryItem) {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     inputValue: item.name,
-    inputValidator: (val) => { 
+    inputValidator: (val) => {
       if (!val.trim()) return '名称不能为空'
       if (val.trim().length > 30) return '名称不能超过30个字符'
-      return true 
+      return true
     }
-  }).then(({ value }) => {
-    chatbiService.renameFavorite(item.id, value.trim())
-    load()
+  }).then(async ({ value }) => {
+    await chatbiService.renameFavorite(item.id, value.trim())
+    await load()
     ElMessage.success('已重命名')
   }).catch(() => {})
 }
@@ -141,9 +141,9 @@ function remove(id: number) {
     cancelButtonText: '取消',
     type: 'warning',
     confirmButtonClass: 'el-button--danger'
-  }).then(() => {
-    chatbiService.removeFavorite(id)
-    load()
+  }).then(async () => {
+    await chatbiService.removeFavorite(id)
+    await load()
     ElMessage.success('已删除')
   }).catch(() => {})
 }
@@ -154,9 +154,9 @@ function clearAll() {
     cancelButtonText: '取消',
     type: 'warning',
     confirmButtonClass: 'el-button--danger'
-  }).then(() => {
-    chatbiService.clearFavorites()
-    load()
+  }).then(async () => {
+    await chatbiService.clearFavorites()
+    await load()
     ElMessage.success('已清空所有收藏')
   }).catch(() => {})
 }

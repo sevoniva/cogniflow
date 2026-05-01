@@ -184,10 +184,16 @@
 </template>
 
 <script setup lang="ts">
-import { markRaw, ref, onMounted, nextTick } from 'vue'
+import { markRaw, ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { Folder, User, TrendCharts, Document } from '@element-plus/icons-vue'
 import { request } from '@/utils/http'
+
+const chartInstances: echarts.ECharts[] = []
+onBeforeUnmount(() => {
+  chartInstances.forEach(c => c.dispose())
+  chartInstances.length = 0
+})
 
 const projectId = ref(1) // 默认项目ID
 
@@ -245,7 +251,7 @@ const renderVelocityChart = async () => {
     const data = await getAgile('/agile/sprint-velocity', { projectId: projectId.value })
 
     if (data.success && velocityChart.value) {
-      const chart = echarts.init(velocityChart.value)
+      const chart = echarts.init(velocityChart.value); chartInstances.push(chart)
       const chartData = data.data.reverse()
 
       chart.setOption({
@@ -286,7 +292,7 @@ const renderDefectChart = async () => {
     const data = await getAgile('/agile/defect-stats', { projectId: projectId.value })
 
     if (data.success && defectChart.value) {
-      const chart = echarts.init(defectChart.value)
+      const chart = echarts.init(defectChart.value); chartInstances.push(chart)
       const severityData = data.data.bySeverity
 
       chart.setOption({
@@ -323,7 +329,7 @@ const renderTestPassRateChart = async () => {
     const data = await getAgile('/agile/test-pass-rate', { projectId: projectId.value })
 
     if (data.success && testPassRateChart.value) {
-      const chart = echarts.init(testPassRateChart.value)
+      const chart = echarts.init(testPassRateChart.value); chartInstances.push(chart)
       const chartData = data.data.reverse()
 
       chart.setOption({
@@ -360,7 +366,7 @@ const renderCommitChart = async () => {
     const data = await getAgile('/agile/commit-stats', { projectId: projectId.value })
 
     if (data.success && commitChart.value) {
-      const chart = echarts.init(commitChart.value)
+      const chart = echarts.init(commitChart.value); chartInstances.push(chart)
       const trendData = data.data.trend
 
       chart.setOption({
@@ -401,7 +407,7 @@ const renderDeploymentChart = async () => {
     const data = await getAgile('/agile/deployment-success-rate', { projectId: projectId.value })
 
     if (data.success && deploymentChart.value) {
-      const chart = echarts.init(deploymentChart.value)
+      const chart = echarts.init(deploymentChart.value); chartInstances.push(chart)
       const envData = data.data.byEnvironment
 
       chart.setOption({
@@ -444,7 +450,7 @@ const renderQualityChart = async () => {
     const data = await getAgile('/agile/quality-metrics', { projectId: projectId.value })
 
     if (data.success && qualityChart.value) {
-      const chart = echarts.init(qualityChart.value)
+      const chart = echarts.init(qualityChart.value); chartInstances.push(chart)
       const chartData = data.data.reverse()
 
       chart.setOption({
@@ -490,7 +496,7 @@ const renderStoryChart = async () => {
     const data = await getAgile('/agile/story-completion', { projectId: projectId.value })
 
     if (data.success && storyChart.value) {
-      const chart = echarts.init(storyChart.value)
+      const chart = echarts.init(storyChart.value); chartInstances.push(chart)
       const statusData = data.data.byStatus
 
       chart.setOption({
@@ -521,7 +527,7 @@ const renderTeamChart = async () => {
     const data = await getAgile('/agile/team-efficiency', { projectId: projectId.value })
 
     if (data.success && teamChart.value) {
-      const chart = echarts.init(teamChart.value)
+      const chart = echarts.init(teamChart.value); chartInstances.push(chart)
       const storyPointsData = data.data.storyPointsByMember
 
       chart.setOption({
@@ -552,7 +558,7 @@ const renderStoryTypeChart = async () => {
     const data = await getAgile('/agile/story-completion', { projectId: projectId.value })
 
     if (data.success && storyTypeChart.value) {
-      const chart = echarts.init(storyTypeChart.value)
+      const chart = echarts.init(storyTypeChart.value); chartInstances.push(chart)
       const typeData = data.data.byType
 
       chart.setOption({
@@ -589,7 +595,7 @@ const renderDefectStatusChart = async () => {
     const data = await getAgile('/agile/defect-stats', { projectId: projectId.value })
 
     if (data.success && defectStatusChart.value) {
-      const chart = echarts.init(defectStatusChart.value)
+      const chart = echarts.init(defectStatusChart.value); chartInstances.push(chart)
       const statusData = data.data.byStatus
 
       chart.setOption({
@@ -626,7 +632,7 @@ const renderUtilizationChart = async () => {
     const data = await getAgile('/agile/team-efficiency', { projectId: projectId.value })
 
     if (data.success && utilizationChart.value) {
-      const chart = echarts.init(utilizationChart.value)
+      const chart = echarts.init(utilizationChart.value); chartInstances.push(chart)
       const utilizationData = data.data.utilizationByMember.slice(0, 5)
 
       chart.setOption({
@@ -669,7 +675,7 @@ const renderDeveloperChart = async () => {
     const data = await getAgile('/agile/commit-stats', { projectId: projectId.value })
 
     if (data.success && developerChart.value) {
-      const chart = echarts.init(developerChart.value)
+      const chart = echarts.init(developerChart.value); chartInstances.push(chart)
       const authorData = data.data.byAuthor
 
       chart.setOption({
@@ -712,7 +718,7 @@ const renderTechDebtChart = async () => {
     const data = await getAgile('/agile/quality-metrics', { projectId: projectId.value })
 
     if (data.success && techDebtChart.value) {
-      const chart = echarts.init(techDebtChart.value)
+      const chart = echarts.init(techDebtChart.value); chartInstances.push(chart)
       const chartData = data.data.reverse()
 
       chart.setOption({
@@ -760,7 +766,7 @@ const renderDefectDensityChart = async () => {
     const data = await getAgile('/agile/quality-metrics', { projectId: projectId.value })
 
     if (data.success && defectDensityChart.value) {
-      const chart = echarts.init(defectDensityChart.value)
+      const chart = echarts.init(defectDensityChart.value); chartInstances.push(chart)
       const chartData = data.data.reverse()
 
       chart.setOption({
@@ -796,7 +802,7 @@ const renderMttrChart = async () => {
     const data = await getAgile('/agile/quality-metrics', { projectId: projectId.value })
 
     if (data.success && mttrChart.value) {
-      const chart = echarts.init(mttrChart.value)
+      const chart = echarts.init(mttrChart.value); chartInstances.push(chart)
       const chartData = data.data.reverse()
 
       chart.setOption({

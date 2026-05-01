@@ -335,7 +335,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { GridLayout, GridItem } from 'vue-grid-layout'
 import {
   ArrowLeft,
@@ -933,9 +933,16 @@ const removeComponent = (component: DashboardComponent) => {
 }
 
 const clearCanvas = () => {
-  components.value = []
-  gridLayout.value = []
-  selectedComponent.value = null
+  ElMessageBox.confirm('确定清空画布？所有组件将被删除', '清空确认', {
+    confirmButtonText: '确定清空',
+    cancelButtonText: '取消',
+    type: 'warning',
+    confirmButtonClass: 'el-button--danger'
+  }).then(() => {
+    components.value = []
+    gridLayout.value = []
+    selectedComponent.value = null
+  }).catch(() => {})
 }
 
 const updateComponent = () => {

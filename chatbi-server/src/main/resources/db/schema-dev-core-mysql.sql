@@ -126,6 +126,9 @@ CREATE TABLE IF NOT EXISTS metrics (
     aggregation VARCHAR(20),
     status VARCHAR(20) DEFAULT 'active',
     created_by BIGINT,
+    cube_sql LONGTEXT,
+    dimensions LONGTEXT,
+    measures LONGTEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP,
@@ -355,10 +358,7 @@ CREATE TABLE IF NOT EXISTS feedback (
     INDEX idx_feedback_exported (exported)
 );
 
--- Month 3 Week 1: Headless BI MetricCube 字段扩展
-ALTER TABLE metrics ADD COLUMN IF NOT EXISTS cube_sql LONGTEXT;
-ALTER TABLE metrics ADD COLUMN IF NOT EXISTS dimensions LONGTEXT;
-ALTER TABLE metrics ADD COLUMN IF NOT EXISTS measures LONGTEXT;
+-- Month 3 Week 1: Headless BI MetricCube 字段扩展 (已合并到 CREATE TABLE)
 
 CREATE TABLE IF NOT EXISTS usage_record (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

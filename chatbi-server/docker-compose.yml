@@ -12,7 +12,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
-      - "${CHATBI_DB_HOST_PORT:-3306}:3306"
+      - "${CHATBI_DB_HOST_PORT:-23306}:3306"
     networks:
       - chatbi-network
     healthcheck:
@@ -30,7 +30,7 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "${CHATBI_REDIS_HOST_PORT:-6379}:6379"
+      - "${CHATBI_REDIS_HOST_PORT:-26379}:6379"
     networks:
       - chatbi-network
     healthcheck:

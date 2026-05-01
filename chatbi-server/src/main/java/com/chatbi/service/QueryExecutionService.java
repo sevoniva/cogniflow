@@ -48,6 +48,7 @@ public class QueryExecutionService {
     private final QueryGovernanceService queryGovernanceService;
     private final DataMaskingService dataMaskingService;
     private final MeterRegistry meterRegistry;
+    private final QueryProgressService queryProgressService;
 
     @Value("${app.query-governance.max-rows:500}")
     private int maxRows;
@@ -125,6 +126,21 @@ public class QueryExecutionService {
               lowCardinalityKeyValues = {"type", "datasource"})
     public List<Map<String, Object>> executeQuery(DataSource dataSource, String sql) {
         return executeQuery(dataSource, sql, null);
+    }
+
+    /**
+     * 执行 SQL 查询（带 WebSocket 进度推送）
+     */
+    public List<Map<String, Object>> executeQueryWithProgress(DataSource dataSource, String sql, Long userId) {
+        queryProgressService.executing();
+        try {
+            List<Map<String, Object>> result = executeQuery(dataSource, sql, userId);
+            queryProgressService.buildingResult();
+            return result;
+        } catch (Exception e) {
+            queryProgressService.error(e.getMessage());
+            throw e;
+        }
     }
 
     public List<Map<String, Object>> executeQuery(DataSource dataSource, String sql, Long userId) {

@@ -169,6 +169,13 @@
             <version>4.9</version>
         </dependency>
 
+        <!-- Casbin - RBAC 权限引擎 -->
+        <dependency>
+            <groupId>org.casbin</groupId>
+            <artifactId>casbin-spring-boot-starter</artifactId>
+            <version>1.5.0</version>
+        </dependency>
+
         <!-- Redis -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

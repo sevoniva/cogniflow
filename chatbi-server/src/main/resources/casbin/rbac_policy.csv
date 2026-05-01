@@ -1,0 +1,10 @@
+p, admin, *, *, *
+p, user, default, /api/query/**, GET|POST
+p, user, default, /api/conversation/**, GET|POST
+p, user, default, /api/dashboard/**, GET|POST
+p, user, default, /api/chart/**, GET|POST
+p, viewer, default, /api/query/**, GET
+p, viewer, default, /api/dashboard/**, GET
+p, viewer, default, /api/chart/**, GET
+g, user, data_analyst, default
+g, viewer, data_viewer, default

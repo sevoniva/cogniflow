@@ -359,3 +359,16 @@ CREATE TABLE IF NOT EXISTS feedback (
 ALTER TABLE metrics ADD COLUMN IF NOT EXISTS cube_sql LONGTEXT;
 ALTER TABLE metrics ADD COLUMN IF NOT EXISTS dimensions LONGTEXT;
 ALTER TABLE metrics ADD COLUMN IF NOT EXISTS measures LONGTEXT;
+
+CREATE TABLE IF NOT EXISTS usage_record (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT,
+    resource_type VARCHAR(50),
+    action VARCHAR(100),
+    cost INT DEFAULT 1,
+    reference_id VARCHAR(64),
+    metadata LONGTEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_usage_user_type (user_id, resource_type),
+    INDEX idx_usage_created_at (created_at)
+);

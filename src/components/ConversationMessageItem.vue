@@ -196,10 +196,16 @@
         <div v-if="msg.sql && msg.sql.trim()" class="sql-block">
           <div class="sql-block__header">
             <span>执行 SQL</span>
-            <el-button size="small" text @click="emit('copySql', msg.sql)">
-              <el-icon><DocumentCopy /></el-icon>
-              复制
-            </el-button>
+            <div class="sql-block__actions">
+              <el-button size="small" text @click="emit('showLineage', msg.sql)">
+                <el-icon><Share /></el-icon>
+                血缘
+              </el-button>
+              <el-button size="small" text @click="emit('copySql', msg.sql)">
+                <el-icon><DocumentCopy /></el-icon>
+                复制
+              </el-button>
+            </div>
           </div>
           <pre class="sql-code">{{ msg.sql }}</pre>
         </div>
@@ -377,7 +383,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { CircleCheck, CircleClose, DocumentCopy, FullScreen, Service, User } from '@element-plus/icons-vue'
+import { CircleCheck, CircleClose, DocumentCopy, FullScreen, Service, Share, User } from '@element-plus/icons-vue'
 import { normalizeEnterpriseChartType } from '@/components/Chart/chartCatalog'
 import {
   buildRankedCandidateLabel,

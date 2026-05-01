@@ -320,3 +320,19 @@ CREATE TABLE IF NOT EXISTS audit_log (
     error_message LONGTEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS prompt_version (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    version_tag VARCHAR(100) NOT NULL,
+    template LONGTEXT NOT NULL,
+    variables LONGTEXT,
+    status VARCHAR(20) DEFAULT 'draft',
+    gray_scale_percent INT DEFAULT 0,
+    description VARCHAR(500),
+    created_by BIGINT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
+    UNIQUE KEY uk_prompt_version_tag (version_tag)
+);

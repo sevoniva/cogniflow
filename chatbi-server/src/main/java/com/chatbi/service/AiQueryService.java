@@ -64,9 +64,16 @@ public class AiQueryService {
     }
 
     /**
-     * 使用 LLM 生成 SQL
+     * 使用 LLM 生成 SQL（兼容旧接口，userId 为 null）
      */
     public String generateSqlWithLLM(String naturalLanguage, List<TableSchema> schemas) {
+        return generateSqlWithLLM(naturalLanguage, schemas, null);
+    }
+
+    /**
+     * 使用 LLM 生成 SQL（支持 Prompt 版本灰度 A/B 测试）
+     */
+    public String generateSqlWithLLM(String naturalLanguage, List<TableSchema> schemas, Long userId) {
         try {
             // 检查AI是否启用
             if (!aiConfig.isEnabled()) {
@@ -75,10 +82,10 @@ public class AiQueryService {
 
             // 获取当前配置的提供商
             AiConfig.ProviderConfig provider = aiConfig.getCurrentProvider();
-            log.info("使用AI提供商: {}, 模型: {}", provider.getName(), provider.getModel());
+            log.info("使用AI提供商: {}, 模型: {}, userId: {}", provider.getName(), provider.getModel(), userId);
 
-            // 使用 LangChain4j PromptTemplate 生成 SQL
-            return sqlGenerationService.generateSql(naturalLanguage, schemas, provider.getName());
+            // 使用 LangChain4j PromptTemplate 生成 SQL（带 userId 灰度）
+            return sqlGenerationService.generateSql(naturalLanguage, schemas, userId, provider.getName());
 
         } catch (Exception e) {
             log.error("LLM 生成 SQL 失败：{}", e.getMessage());

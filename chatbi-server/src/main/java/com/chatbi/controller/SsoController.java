@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
@@ -37,6 +38,9 @@ public class SsoController {
     private final Optional<ClientRegistrationRepository> clientRegistrationRepository;
     private final JwtUtils jwtUtils;
     private final SysUserMapper sysUserMapper;
+
+    @Value("${app.security.sso-callback-url:http://localhost:5173/sso/callback}")
+    private String ssoCallbackUrl;
 
     /**
      * 获取支持的 OAuth2 Provider 列表
@@ -161,13 +165,11 @@ public class SsoController {
      * 构建重定向 URL
      */
     private String buildRedirectUrl(String accessToken, String refreshToken) {
-        // 重定向到前端的回调页面，携带 token 参数
-        return ServletUriComponentsBuilder.fromUriString("http://localhost:5173/sso/callback")
-                .queryParam("accessToken", accessToken)
-                .queryParam("refreshToken", refreshToken)
-                .queryParam("tokenType", "Bearer")
-                .build()
-                .toUriString();
+        // 使用 fragment 传递 token，避免 token 出现在服务器日志中
+        return ssoCallbackUrl
+                + "#accessToken=" + accessToken
+                + "&refreshToken=" + refreshToken
+                + "&tokenType=Bearer";
     }
 
     /**

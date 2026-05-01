@@ -126,6 +126,8 @@ app:
     # Captcha 配置
     captcha-enabled: true
     captcha-expiration: 300
+    # SSO 前端回调地址
+    sso-callback-url: ${SSO_CALLBACK_URL:http://localhost:5173/sso/callback}
     # OAuth2 配置 (Spring Security)
     oauth2:
       client:

@@ -9,19 +9,34 @@ export interface QueryProgress {
 
 const STAGE_ORDER = ['ANALYZING', 'GENERATING_SQL', 'EXECUTING', 'BUILDING_RESULT', 'DONE']
 
+const MAX_RECONNECT_DELAY = 30000
+const INITIAL_RECONNECT_DELAY = 1000
+
 export function useQueryProgress() {
   const progress = ref<QueryProgress | null>(null)
   const connected = ref(false)
   let ws: WebSocket | null = null
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  let reconnectDelay = INITIAL_RECONNECT_DELAY
+  let intentionalClose = false
 
   const connect = () => {
+    if (ws?.readyState === WebSocket.OPEN || ws?.readyState === WebSocket.CONNECTING) return
+
+    intentionalClose = false
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const wsUrl = `${protocol}//${window.location.host}/ws/query-progress`
 
-    ws = new WebSocket(wsUrl)
+    try {
+      ws = new WebSocket(wsUrl)
+    } catch {
+      scheduleReconnect()
+      return
+    }
 
     ws.onopen = () => {
       connected.value = true
+      reconnectDelay = INITIAL_RECONNECT_DELAY
       console.log('[WebSocket] 查询进度连接已建立')
     }
 
@@ -36,7 +51,11 @@ export function useQueryProgress() {
 
     ws.onclose = () => {
       connected.value = false
-      console.log('[WebSocket] 查询进度连接已关闭')
+      ws = null
+      if (!intentionalClose) {
+        console.log('[WebSocket] 连接断开，准备重连...')
+        scheduleReconnect()
+      }
     }
 
     ws.onerror = (err) => {
@@ -45,7 +64,21 @@ export function useQueryProgress() {
     }
   }
 
+  const scheduleReconnect = () => {
+    if (reconnectTimer || intentionalClose) return
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null
+      connect()
+    }, reconnectDelay)
+    reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY)
+  }
+
   const disconnect = () => {
+    intentionalClose = true
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
     if (ws) {
       ws.close()
       ws = null

@@ -1,6 +1,5 @@
 import type { ApiResponse } from '@/types'
 import { useUserStore } from '@/stores/user'
-import { ofetch, type FetchOptions } from 'ofetch'
 import { z } from 'zod'
 
 const API_BASE = ((import.meta as any).env?.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
@@ -133,40 +132,6 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
   }
 }
 
-/**
- * 基于 ofetch 的高级 HTTP 实例
- *
- * 特性：拦截器、自动重试、请求取消、基础 URL、去重请求。
- * 新代码推荐使用 $http 替代 request()。
- */
-export const $http = ofetch.create({
-  baseURL: API_BASE,
-  credentials: 'include',
-  timeout: TIMEOUT,
-  retry: 1,
-  retryStatusCodes: [408, 429, 500, 502, 503, 504],
-
-  onRequest({ options }) {
-    const headers = new Headers(options.headers || {})
-    const isJsonBody = options.body !== undefined && !(options.body instanceof FormData)
-    if (isJsonBody && !headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json')
-    }
-    try {
-      const userStore = useUserStore()
-      if (userStore.token && !headers.has('Authorization')) {
-        headers.set('Authorization', `Bearer ${userStore.token}`)
-      }
-    } catch {
-      // store 未初始化时忽略
-    }
-    options.headers = headers
-  },
-
-  onResponseError({ response, request }) {
-    console.warn(`[HTTP] ${request} -> ${response.status} ${response.statusText}`)
-  }
-})
 
 export function extractRecords<T>(data: unknown): T[] {
   if (Array.isArray(data)) {

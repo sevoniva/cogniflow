@@ -1,5 +1,6 @@
 package com.chatbi.service;
 
+import com.chatbi.service.rag.EmbeddingService;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * SQL 生成服务
@@ -29,6 +31,7 @@ import java.util.Map;
 public class SqlGenerationService {
 
     private final ChatbiLanguageModel chatbiLanguageModel;
+    private final EmbeddingService embeddingService;
 
     /**
      * SQL 生成 Prompt 模板
@@ -87,8 +90,8 @@ public class SqlGenerationService {
      */
     public String generateSql(String question, List<AiQueryService.TableSchema> schemas) {
         String tableSchemaText = buildTableSchemaText(schemas);
-        String businessTerms = buildBusinessTerms();      // 预留：RAG 注入业务术语
-        String historicalQueries = buildHistoricalQueries(); // 预留：RAG 注入历史查询
+        String businessTerms = buildBusinessTerms(question);      // RAG 注入业务术语
+        String historicalQueries = buildHistoricalQueries(question); // RAG 注入历史查询
 
         PromptTemplate promptTemplate = PromptTemplate.from(SQL_GENERATION_TEMPLATE);
         Map<String, Object> variables = new HashMap<>();
@@ -111,8 +114,8 @@ public class SqlGenerationService {
      */
     public String generateSql(String question, List<AiQueryService.TableSchema> schemas, String provider) {
         String tableSchemaText = buildTableSchemaText(schemas);
-        String businessTerms = buildBusinessTerms();
-        String historicalQueries = buildHistoricalQueries();
+        String businessTerms = buildBusinessTerms(question);
+        String historicalQueries = buildHistoricalQueries(question);
 
         PromptTemplate promptTemplate = PromptTemplate.from(SQL_GENERATION_TEMPLATE);
         Map<String, Object> variables = new HashMap<>();
@@ -164,24 +167,43 @@ public class SqlGenerationService {
     }
 
     /**
-     * 构建业务术语映射（预留 RAG 接口）
+     * 构建业务术语映射（RAG 向量检索）
      *
-     * TODO: 接入向量检索，动态注入业务术语映射
-     * 例如："GMV" -> "order_amount", "华东区" -> "region='east'"
+     * 根据用户问题，从 EmbeddingService 检索最相关的业务术语映射。
      */
-    private String buildBusinessTerms() {
-        // 预留：从 EmbeddingStore 检索相关术语
-        return "暂无业务术语映射";
+    private String buildBusinessTerms(String question) {
+        try {
+            List<EmbeddingService.SearchResult> results = embeddingService.search(question, 3);
+            if (results.isEmpty()) {
+                return "暂无业务术语映射";
+            }
+            return results.stream()
+                .map(r -> "- " + r.text() + " (相关度: " + String.format("%.2f", r.similarity()) + ")")
+                .collect(Collectors.joining("\n"));
+        } catch (Exception e) {
+            log.warn("业务术语向量检索失败，fallback 到默认值", e);
+            return "暂无业务术语映射";
+        }
     }
 
     /**
-     * 构建历史成功查询示例（预留 RAG 接口）
+     * 构建历史成功查询示例（RAG 向量检索）
      *
-     * TODO: 接入向量检索，动态加载相似问题的成功 SQL 示例
+     * 根据用户问题，从 EmbeddingService 检索相似问题的成功 SQL 示例。
      */
-    private String buildHistoricalQueries() {
-        // 预留：从 EmbeddingStore 检索相似查询的历史 SQL
-        return DEFAULT_FEW_SHOT_EXAMPLES;
+    private String buildHistoricalQueries(String question) {
+        try {
+            List<EmbeddingService.SearchResult> results = embeddingService.search(question + " SQL示例", 3);
+            if (results.isEmpty()) {
+                return DEFAULT_FEW_SHOT_EXAMPLES;
+            }
+            return results.stream()
+                .map(r -> "- 问题: " + r.text())
+                .collect(Collectors.joining("\n"));
+        } catch (Exception e) {
+            log.warn("历史查询向量检索失败，fallback 到默认示例", e);
+            return DEFAULT_FEW_SHOT_EXAMPLES;
+        }
     }
 
     /**

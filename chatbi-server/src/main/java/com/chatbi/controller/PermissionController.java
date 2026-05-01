@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.chatbi.common.Result;
 import com.chatbi.entity.SysPermission;
 import com.chatbi.service.PermissionService;
@@ -12,6 +14,7 @@ import java.util.List;
 /**
  * 权限管理控制器
  */
+@Tag(name = "权限管理", description = "权限管理控制器")
 @RestController
 @RequestMapping("/api/system/permissions")
 @RequiredArgsConstructor
@@ -22,6 +25,7 @@ public class PermissionController {
     /**
      * 查询权限树
      */
+    @Operation(summary = "查询权限树")
     @GetMapping("/tree")
     @PreAuthorize("hasAuthority('system:permission:query')")
     public Result<List<SysPermission>> tree() {
@@ -32,6 +36,7 @@ public class PermissionController {
     /**
      * 根据 ID 查询权限
      */
+    @Operation(summary = "根据 ID 查询权限")
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('system:permission:query')")
     public Result<SysPermission> get(@PathVariable Long id) {
@@ -42,6 +47,7 @@ public class PermissionController {
     /**
      * 创建权限
      */
+    @Operation(summary = "创建权限")
     @PostMapping
     @PreAuthorize("hasAuthority('system:permission:add')")
     public Result<SysPermission> create(@RequestBody SysPermission permission) {
@@ -52,6 +58,7 @@ public class PermissionController {
     /**
      * 更新权限
      */
+    @Operation(summary = "更新权限")
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('system:permission:update')")
     public Result<SysPermission> update(
@@ -65,6 +72,7 @@ public class PermissionController {
     /**
      * 删除权限
      */
+    @Operation(summary = "删除权限")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('system:permission:delete')")
     public Result<Void> delete(@PathVariable Long id) {

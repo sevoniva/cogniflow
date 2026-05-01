@@ -105,7 +105,6 @@ public class SubscriptionService {
      * 定时任务：检查并发送订阅推送
      * 每分钟执行一次
      */
-    @Scheduled(cron = "0 */1 * * * ?")
     public void checkAndPush() {
         List<Subscription> subscriptions = getActiveSubscriptions();
         LocalDateTime now = LocalDateTime.now();

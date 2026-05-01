@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.chatbi.common.Result;
 import com.chatbi.config.AiConfig;
@@ -34,6 +36,7 @@ import java.util.stream.Collectors;
  * 实现AI对话式查询
  */
 @Slf4j
+@Tag(name = "多轮对话", description = "多轮对话控制器")
 @RestController
 @RequestMapping("/api/conversation")
 @CrossOrigin(origins = "*")
@@ -115,6 +118,7 @@ public class ConversationController {
     /**
      * 创建新对话
      */
+    @Operation(summary = "创建新对话")
     @PostMapping("/create")
     public Result<Map<String, Object>> createConversation(@RequestBody Map<String, Object> request) {
         Long userId = request.get("userId") != null ?
@@ -132,6 +136,7 @@ public class ConversationController {
     /**
      * 发送消息（多轮对话核心接口）
      */
+    @Operation(summary = "发送消息（多轮对话核心接口）")
     @PostMapping("/message")
     public Result<Map<String, Object>> sendMessage(@RequestBody Map<String, Object> request) {
         String conversationId = (String) request.get("conversationId");
@@ -297,6 +302,7 @@ public class ConversationController {
      *
      * 通过 SSE 返回处理进度和最终结果，前端可实现打字机效果。
      */
+    @Operation(summary = "发送消息（流式输出）")
     @PostMapping(value = "/message/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamMessage(@RequestBody Map<String, Object> request) {
         SseEmitter emitter = new SseEmitter(120_000L);
@@ -411,6 +417,7 @@ public class ConversationController {
     /**
      * 获取对话历史
      */
+    @Operation(summary = "获取对话历史")
     @GetMapping("/{conversationId}/history")
     public Result<List<ConversationService.Message>> getHistory(@PathVariable String conversationId) {
         ConversationService.Conversation conversation = conversationService.getConversation(conversationId);
@@ -424,6 +431,7 @@ public class ConversationController {
     /**
      * 获取对话列表
      */
+    @Operation(summary = "获取对话列表")
     @GetMapping("/list")
     public Result<List<Map<String, Object>>> getConversationList(@RequestParam(defaultValue = "1") Long userId) {
         List<Map<String, Object>> conversations = conversationService.getUserConversations(userId).stream()
@@ -443,6 +451,7 @@ public class ConversationController {
     /**
      * 删除对话
      */
+    @Operation(summary = "删除对话")
     @DeleteMapping("/{conversationId}")
     public Result<Void> deleteConversation(@PathVariable String conversationId) {
         conversationService.deleteConversation(conversationId);
@@ -452,6 +461,7 @@ public class ConversationController {
     /**
      * 获取查询建议
      */
+    @Operation(summary = "获取查询建议")
     @GetMapping("/suggestions")
     public Result<List<String>> getSuggestions(@RequestParam(required = false) String conversationId) {
         List<String> suggestions = new ArrayList<>();
@@ -475,6 +485,7 @@ public class ConversationController {
     /**
      * 获取对话能力说明与运行状态
      */
+    @Operation(summary = "获取对话能力说明与运行状态")
     @GetMapping("/capabilities")
     public Result<Map<String, Object>> getCapabilities() {
         List<Metric> activeMetrics = getActiveMetrics();

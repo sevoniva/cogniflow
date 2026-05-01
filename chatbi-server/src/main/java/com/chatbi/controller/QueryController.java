@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.chatbi.config.AiConfig;
 import com.chatbi.dto.ApiResponse;
@@ -30,6 +32,7 @@ import java.util.*;
  * 用户侧查询接口 - 对应前端 IChatbiService 查询部分
  */
 @Slf4j
+@Tag(name = "用户查询", description = "用户侧查询接口 - 对应前端 IChatbiService 查询部分")
 @RestController
 @RequestMapping("/api/query")
 @CrossOrigin(origins = "*")
@@ -61,6 +64,7 @@ public class QueryController {
      * 执行查询
      * 返回与前端 QueryResult 类型匹配的结构
      */
+    @Operation(summary = "执行查询")
     @PostMapping
     public ApiResponse<QueryResult> executeQuery(@RequestBody Map<String, String> request, HttpServletRequest servletRequest) {
         String text = extractQueryText(request);
@@ -320,6 +324,7 @@ public class QueryController {
     /**
      * 执行可视化查询构建器生成的 SQL
      */
+    @Operation(summary = "执行可视化查询构建器生成的 SQL")
     @PostMapping("/execute")
     public ApiResponse<Map<String, Object>> executeSql(@RequestBody Map<String, Object> request, HttpServletRequest servletRequest) {
         Object sqlValue = request != null ? request.get("sql") : null;
@@ -399,6 +404,7 @@ public class QueryController {
     /**
      * 获取热门查询（基于启用的指标）
      */
+    @Operation(summary = "获取热门查询（基于启用的指标）")
     @GetMapping("/hot")
     public ApiResponse<List<Map<String, Object>>> getHotQueries() {
         LambdaQueryWrapper<Metric> wrapper = new LambdaQueryWrapper<>();
@@ -429,6 +435,7 @@ public class QueryController {
     /**
      * 获取示例查询
      */
+    @Operation(summary = "获取示例查询")
     @GetMapping("/examples")
     public ApiResponse<List<String>> getExamples() {
         return ApiResponse.ok(List.of(

@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.chatbi.common.Result;
 import com.chatbi.entity.AuditLog;
 import com.chatbi.service.AccessAlertService;
@@ -18,6 +20,7 @@ import java.util.Map;
 /**
  * 审计日志控制器
  */
+@Tag(name = "审计日志", description = "审计日志控制器")
 @RestController
 @RequestMapping("/api/audit")
 @RequiredArgsConstructor
@@ -30,6 +33,7 @@ public class AuditLogController {
     /**
      * 分页查询审计日志
      */
+    @Operation(summary = "分页查询审计日志")
     @GetMapping("/logs")
     @PreAuthorize("hasAuthority('admin')")
     public Result<Page<AuditLog>> getAuditLogs(
@@ -48,12 +52,14 @@ public class AuditLogController {
         return Result.ok(page);
     }
 
+    @Operation(summary = "获取资源类型选项")
     @GetMapping("/logs/options")
     @PreAuthorize("hasAuthority('admin')")
     public Result<List<String>> getResourceTypeOptions(@RequestParam(defaultValue = "100") int limit) {
         return Result.ok(auditLogService.topResourceTypes(limit));
     }
 
+    @Operation(summary = "获取策略版本列表")
     @GetMapping("/policy-versions")
     @PreAuthorize("hasAuthority('admin')")
     public Result<List<Map<String, Object>>> getPolicyVersions(
@@ -63,12 +69,14 @@ public class AuditLogController {
         return Result.ok(policyVersionService.listPolicyVersions(scope, limit));
     }
 
+    @Operation(summary = "获取策略版本作用域")
     @GetMapping("/policy-versions/options")
     @PreAuthorize("hasAuthority('admin')")
     public Result<List<String>> getPolicyVersionScopes(@RequestParam(defaultValue = "100") int limit) {
         return Result.ok(policyVersionService.listScopes(limit));
     }
 
+    @Operation(summary = "获取访问告警列表")
     @GetMapping("/access-alerts")
     @PreAuthorize("hasAuthority('admin')")
     public Result<List<Map<String, Object>>> getAccessAlerts(
@@ -80,6 +88,7 @@ public class AuditLogController {
         return Result.ok(accessAlertService.listAlerts(status, severity, keyword, limit));
     }
 
+    @Operation(summary = "获取访问告警选项")
     @GetMapping("/access-alerts/options")
     @PreAuthorize("hasAuthority('admin')")
     public Result<Map<String, Object>> getAccessAlertOptions(@RequestParam(defaultValue = "100") int limit) {
@@ -90,6 +99,7 @@ public class AuditLogController {
         ));
     }
 
+    @Operation(summary = "确认访问告警")
     @PutMapping("/access-alerts/{id}/ack")
     @PreAuthorize("hasAuthority('admin')")
     public Result<Map<String, Object>> acknowledgeAccessAlert(
@@ -102,6 +112,7 @@ public class AuditLogController {
     /**
      * 根据 ID 查询审计日志详情
      */
+    @Operation(summary = "根据 ID 查询审计日志详情")
     @GetMapping("/logs/{id}")
     @PreAuthorize("hasAuthority('admin')")
     public Result<AuditLog> getAuditLog(@PathVariable Long id) {
@@ -112,6 +123,7 @@ public class AuditLogController {
     /**
      * 统计审计日志
      */
+    @Operation(summary = "统计审计日志")
     @GetMapping("/logs/count")
     @PreAuthorize("hasAuthority('admin')")
     public Result<Long> count(

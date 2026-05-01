@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.chatbi.common.Result;
 import com.chatbi.repository.DataSourceMapper;
 import com.chatbi.service.*;
@@ -14,6 +16,7 @@ import java.util.*;
  * 提供AI增强的数据分析功能
  */
 @Slf4j
+@Tag(name = "智能分析", description = "智能分析控制器")
 @RestController
 @RequestMapping("/api/intelligence")
 @CrossOrigin(origins = "*")
@@ -32,6 +35,7 @@ public class IntelligenceController {
     /**
      * 异常检测
      */
+    @Operation(summary = "异常检测")
     @PostMapping("/anomaly-detection")
     public Result<Map<String, Object>> detectAnomalies(@RequestBody Map<String, Object> request) {
         try {
@@ -63,6 +67,7 @@ public class IntelligenceController {
     /**
      * 数据探索
      */
+    @Operation(summary = "数据探索")
     @PostMapping("/data-exploration")
     public Result<Map<String, Object>> exploreData(@RequestBody Map<String, Object> request) {
         try {
@@ -93,6 +98,7 @@ public class IntelligenceController {
     /**
      * 趋势预测
      */
+    @Operation(summary = "趋势预测")
     @PostMapping("/prediction")
     public Result<PredictionService.PredictionResult> predict(@RequestBody Map<String, Object> request) {
         try {
@@ -123,6 +129,7 @@ public class IntelligenceController {
     /**
      * 生成智能报表
      */
+    @Operation(summary = "生成智能报表")
     @PostMapping("/generate-report")
     public Result<ReportGenerationService.Report> generateReport(@RequestBody Map<String, Object> request) {
         try {
@@ -149,6 +156,7 @@ public class IntelligenceController {
     /**
      * AI助手问答
      */
+    @Operation(summary = "AI助手问答")
     @PostMapping("/assistant/ask")
     public Result<AiAssistantService.AssistantResponse> askAssistant(@RequestBody Map<String, Object> request) {
         try {
@@ -175,6 +183,7 @@ public class IntelligenceController {
     /**
      * 综合智能分析（一次性执行所有分析）
      */
+    @Operation(summary = "综合智能分析（一次性执行所有分析）")
     @PostMapping("/comprehensive-analysis")
     public Result<Map<String, Object>> comprehensiveAnalysis(@RequestBody Map<String, Object> request) {
         try {
@@ -254,6 +263,7 @@ public class IntelligenceController {
     /**
      * 获取智能建议
      */
+    @Operation(summary = "获取智能建议")
     @PostMapping("/suggestions")
     public Result<List<String>> getSuggestions(@RequestBody Map<String, Object> request) {
         try {

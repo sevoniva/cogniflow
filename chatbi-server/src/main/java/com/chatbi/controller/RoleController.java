@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.chatbi.common.Result;
 import com.chatbi.entity.SysRole;
 import com.chatbi.service.RoleService;
@@ -13,6 +15,7 @@ import java.util.List;
 /**
  * 角色管理控制器
  */
+@Tag(name = "角色管理", description = "角色管理控制器")
 @RestController
 @RequestMapping("/api/system/roles")
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class RoleController {
     /**
      * 分页查询角色列表
      */
+    @Operation(summary = "分页查询角色列表")
     @GetMapping
     @PreAuthorize("hasAuthority('system:role:query')")
     public Result<Page<SysRole>> list(
@@ -38,6 +42,7 @@ public class RoleController {
     /**
      * 查询所有启用状态的角色
      */
+    @Operation(summary = "查询所有启用状态的角色")
     @GetMapping("/active")
     public Result<List<SysRole>> listActive() {
         List<SysRole> roles = roleService.listActive();
@@ -47,6 +52,7 @@ public class RoleController {
     /**
      * 根据 ID 查询角色
      */
+    @Operation(summary = "根据 ID 查询角色")
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('system:role:query')")
     public Result<SysRole> get(@PathVariable Long id) {
@@ -57,6 +63,7 @@ public class RoleController {
     /**
      * 创建角色
      */
+    @Operation(summary = "创建角色")
     @PostMapping
     @PreAuthorize("hasAuthority('system:role:add')")
     public Result<SysRole> create(@RequestBody SysRole role) {
@@ -67,6 +74,7 @@ public class RoleController {
     /**
      * 更新角色
      */
+    @Operation(summary = "更新角色")
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('system:role:update')")
     public Result<SysRole> update(@PathVariable Long id, @RequestBody SysRole role) {
@@ -77,6 +85,7 @@ public class RoleController {
     /**
      * 删除角色
      */
+    @Operation(summary = "删除角色")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('system:role:delete')")
     public Result<Void> delete(@PathVariable Long id) {
@@ -87,6 +96,7 @@ public class RoleController {
     /**
      * 分配权限给角色
      */
+    @Operation(summary = "分配权限给角色")
     @PostMapping("/{id}/permissions")
     @PreAuthorize("hasAuthority('system:role:update')")
     public Result<Void> assignPermissions(
@@ -100,6 +110,7 @@ public class RoleController {
     /**
      * 查询角色的权限 ID 列表
      */
+    @Operation(summary = "查询角色的权限 ID 列表")
     @GetMapping("/{id}/permissions")
     @PreAuthorize("hasAuthority('system:role:query')")
     public Result<List<Long>> getPermissions(@PathVariable Long id) {

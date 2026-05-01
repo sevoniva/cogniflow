@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.chatbi.common.Result;
 import com.chatbi.entity.DataPermissionRule;
 import com.chatbi.service.DataPermissionService;
@@ -12,6 +14,7 @@ import java.util.List;
 /**
  * 数据权限控制器 - 行级权限
  */
+@Tag(name = "数据权限", description = "数据权限控制器 - 行级权限")
 @RestController
 @RequestMapping("/api/data-permissions")
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class DataPermissionController {
     /**
      * 获取所有规则
      */
+    @Operation(summary = "获取所有规则")
     @GetMapping
     public Result<List<DataPermissionRule>> list() {
         return Result.ok(dataPermissionService.list());
@@ -31,6 +35,7 @@ public class DataPermissionController {
     /**
      * 根据 ID 查询
      */
+    @Operation(summary = "根据 ID 查询")
     @GetMapping("/{id}")
     public Result<DataPermissionRule> getById(@PathVariable Long id) {
         return Result.ok(dataPermissionService.getById(id));
@@ -39,6 +44,7 @@ public class DataPermissionController {
     /**
      * 创建规则
      */
+    @Operation(summary = "创建规则")
     @PostMapping
     public Result<DataPermissionRule> create(@RequestBody DataPermissionRule rule) {
         DataPermissionRule created = dataPermissionService.create(rule);
@@ -49,6 +55,7 @@ public class DataPermissionController {
     /**
      * 更新规则
      */
+    @Operation(summary = "更新规则")
     @PutMapping("/{id}")
     public Result<DataPermissionRule> update(
             @PathVariable Long id,
@@ -61,6 +68,7 @@ public class DataPermissionController {
     /**
      * 删除规则
      */
+    @Operation(summary = "删除规则")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         DataPermissionRule existing = dataPermissionService.getById(id);
@@ -72,6 +80,7 @@ public class DataPermissionController {
     /**
      * 获取用户在某表上的权限规则
      */
+    @Operation(summary = "获取用户在某表上的权限规则")
     @GetMapping("/user/{userId}/table/{tableName}")
     public Result<List<DataPermissionRule>> getUserRules(
             @PathVariable Long userId,

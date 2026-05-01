@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.chatbi.common.Result;
 import com.chatbi.support.SqlDialectHelper;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import java.util.*;
  * 运营分析控制器
  */
 @Slf4j
+@Tag(name = "运营分析", description = "运营分析控制器")
 @RestController
 @RequestMapping("/api/analytics/operation")
 @CrossOrigin(origins = "*")
@@ -28,6 +31,7 @@ public class OperationAnalyticsController {
     /**
      * 用户活跃度趋势（DAU/MAU）
      */
+    @Operation(summary = "用户活跃度趋势（DAU/MAU）")
     @GetMapping("/user-activity")
     public Result<List<Map<String, Object>>> getUserActivity() {
         try {
@@ -54,6 +58,7 @@ public class OperationAnalyticsController {
     /**
      * 用户注册趋势
      */
+    @Operation(summary = "用户注册趋势")
     @GetMapping("/user-registration")
     public Result<List<Map<String, Object>>> getUserRegistration() {
         try {
@@ -76,6 +81,7 @@ public class OperationAnalyticsController {
     /**
      * 渠道分析
      */
+    @Operation(summary = "渠道分析")
     @GetMapping("/channel-analysis")
     public Result<List<Map<String, Object>>> getChannelAnalysis() {
         try {
@@ -99,6 +105,7 @@ public class OperationAnalyticsController {
     /**
      * 设备分析
      */
+    @Operation(summary = "设备分析")
     @GetMapping("/device-analysis")
     public Result<List<Map<String, Object>>> getDeviceAnalysis() {
         try {
@@ -122,6 +129,7 @@ public class OperationAnalyticsController {
     /**
      * 地域分析
      */
+    @Operation(summary = "地域分析")
     @GetMapping("/region-analysis")
     public Result<List<Map<String, Object>>> getRegionAnalysis() {
         try {
@@ -144,6 +152,7 @@ public class OperationAnalyticsController {
     /**
      * 事件类型分析
      */
+    @Operation(summary = "事件类型分析")
     @GetMapping("/event-analysis")
     public Result<List<Map<String, Object>>> getEventAnalysis() {
         try {
@@ -166,6 +175,7 @@ public class OperationAnalyticsController {
     /**
      * 用户留存分析
      */
+    @Operation(summary = "用户留存分析")
     @GetMapping("/user-retention")
     public Result<Map<String, Object>> getUserRetention() {
         try {
@@ -199,6 +209,7 @@ public class OperationAnalyticsController {
     /**
      * 运营概览
      */
+    @Operation(summary = "运营概览")
     @GetMapping("/overview")
     public Result<Map<String, Object>> getOverview() {
         try {

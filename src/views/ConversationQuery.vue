@@ -166,331 +166,28 @@
               </div>
             </div>
 
-            <div
-              v-for="(msg, index) in messages"
-              :key="`${msg.role}-${msg.timestamp}-${index}`"
-              class="message-row"
-              :class="[`is-${msg.role}`, { 'has-data': Boolean(msg.data?.length) }]"
+            <RecycleScroller
+              class="message-scroller"
+              :items="messages"
+              :item-size="300"
+              key-field="timestamp"
             >
-              <div class="message-card" :class="`is-${msg.role}`">
-                <div class="message-avatar">
-                  <el-icon v-if="msg.role === 'user'"><User /></el-icon>
-                  <el-icon v-else><Service /></el-icon>
-                </div>
-
-                <div class="message-content">
-                  <div class="message-meta">
-                    <strong>{{ msg.role === 'user' ? '你' : 'ChatBI' }}</strong>
-                    <span>{{ formatTime(msg.timestamp) }}</span>
-                    <el-tag v-if="msg.metric" size="small" effect="plain">{{ msg.metric }}</el-tag>
-                    <el-tag
-                      v-if="msg.disambiguation"
-                      size="small"
-                      type="warning"
-                      effect="dark"
-                    >
-                      指标待澄清
-                    </el-tag>
-                    <el-tag
-                      v-if="msg.role === 'assistant' && msg.source"
-                      size="small"
-                      effect="plain"
-                      :type="msg.source === 'llm' ? 'success' : 'info'"
-                    >
-                      {{ sourceLabel(msg.source) }}
-                    </el-tag>
-                  </div>
-
-                  <div class="message-text">{{ msg.content }}</div>
-
-                  <div
-                    v-if="msg.role === 'assistant' && msg.aiStatus"
-                    class="ai-trace"
-                    :class="{ 'is-llm': msg.source === 'llm' || msg.source === 'business-insight-ai' }"
-                  >
-                    {{ aiTraceLabel(msg) }}
-                  </div>
-
-                  <div v-if="msg.diagnosis && msg.diagnosis.code !== 'QUERY_EXECUTED'" class="diagnosis-panel">
-                    <div class="diagnosis-panel__head">
-                      <el-tag size="small" effect="plain" type="warning">
-                        诊断码：{{ msg.diagnosis.code }}
-                      </el-tag>
-                      <el-tag v-if="msg.diagnosis.recovered" size="small" effect="plain" type="success">
-                        已恢复
-                      </el-tag>
-                      <el-tag
-                        v-if="msg.diagnosis.guidanceScenario"
-                        size="small"
-                        effect="plain"
-                        type="info"
-                      >
-                        {{ msg.diagnosis.guidanceScenario }}
-                      </el-tag>
-                  </div>
-                  <p>{{ msg.diagnosis.reason }}</p>
-                  <div
-                    v-if="msg.diagnosis.intentTags?.length || msg.diagnosis.candidateMetricsPreview?.length"
-                    class="diagnosis-panel__evidence"
-                  >
-                    <span class="diagnosis-panel__evidence-label">识别依据</span>
-                    <el-tag
-                      v-for="tag in msg.diagnosis.intentTags || []"
-                      :key="`intent-${tag}`"
-                      size="small"
-                      effect="plain"
-                      type="info"
-                    >
-                      {{ tag }}
-                    </el-tag>
-                    <el-tag
-                      v-for="metric in msg.diagnosis.candidateMetricsPreview || []"
-                      :key="`metric-${metric}`"
-                      size="small"
-                      effect="plain"
-                      type="success"
-                    >
-                      指标候选：{{ metric }}
-                    </el-tag>
-                  </div>
-                  <div
-                    v-if="msg.diagnosis.slotEvidence"
-                    class="diagnosis-panel__evidence"
-                  >
-                    <span class="diagnosis-panel__evidence-label">槽位证据</span>
-                    <el-tag
-                      v-if="msg.diagnosis.slotEvidence.primaryMetric?.value"
-                      size="small"
-                      effect="plain"
-                      type="success"
-                    >
-                      主指标：{{ msg.diagnosis.slotEvidence.primaryMetric.value }}
-                    </el-tag>
-                    <el-tag
-                      v-if="msg.diagnosis.slotEvidence.secondaryMetric?.value"
-                      size="small"
-                      effect="plain"
-                      type="warning"
-                    >
-                      对比指标：{{ msg.diagnosis.slotEvidence.secondaryMetric.value }}
-                    </el-tag>
-                    <el-tag
-                      v-for="metric in msg.diagnosis.slotEvidence.secondaryMetric?.candidates || []"
-                      :key="`slot-candidate-${metric}`"
-                      size="small"
-                      effect="plain"
-                      type="info"
-                    >
-                      待确认：{{ metric }}
-                    </el-tag>
-                    <div
-                      v-if="rankedCandidateReasonOptionsForMessage(msg).length > 1"
-                      class="diagnosis-panel__rank-filters"
-                    >
-                      <span class="diagnosis-panel__evidence-label">证据分组</span>
-                      <el-button
-                        v-for="option in rankedCandidateReasonOptionsForMessage(msg)"
-                        :key="`slot-ranked-filter-${option.key}`"
-                        size="small"
-                        plain
-                        class="diagnosis-panel__rank-filter"
-                        :class="{ 'is-active': rankedCandidateReasonFilterForMessage(msg, index) === option.key }"
-                        :type="rankedCandidateReasonFilterForMessage(msg, index) === option.key ? 'warning' : undefined"
-                        @click="setRankedCandidateReasonFilterForMessage(msg, index, option.key)"
-                      >
-                        {{ option.label }}（{{ option.count }}）
-                      </el-button>
-                    </div>
-                    <el-tag
-                      v-for="(candidate, rankedIndex) in visibleRankedCandidatesForMessage(msg, index)"
-                      :key="`slot-ranked-${candidate.metric || rankedIndex}`"
-                      size="small"
-                      effect="plain"
-                      :type="rankedIndex === 0 ? 'warning' : 'info'"
-                      :class="{ 'is-ranked-top': rankedIndex === 0 }"
-                      :title="`分类：${rankedCandidateReasonSummary(candidate)}`"
-                    >
-                      {{ rankedCandidateLabel(msg, candidate, rankedIndex) }}
-                    </el-tag>
-                    <el-button
-                      v-if="hiddenRankedCountForMessage(msg, index) > 0 || isRankedCandidateExpanded(msg, index)"
-                      link
-                      type="primary"
-                      class="diagnosis-panel__rank-toggle"
-                      @click="toggleRankedCandidateExpanded(msg, index)"
-                    >
-                      {{ isRankedCandidateExpanded(msg, index) ? '收起排序证据' : `展开更多排序证据（+${hiddenRankedCountForMessage(msg, index)}）` }}
-                    </el-button>
-                    <el-tag
-                      v-if="msg.diagnosis.slotEvidence.secondaryMetric?.source"
-                      size="small"
-                      effect="plain"
-                    >
-                      来源：{{ slotSourceLabel(msg.diagnosis.slotEvidence.secondaryMetric.source) }}
-                    </el-tag>
-                    <el-tag
-                      v-if="msg.diagnosis.slotEvidence.secondaryMetric?.confidence !== undefined"
-                      size="small"
-                      effect="plain"
-                    >
-                      置信度：{{ formatConfidence(msg.diagnosis.slotEvidence.secondaryMetric.confidence) }}
-                    </el-tag>
-                    <el-tag
-                      v-if="msg.diagnosis.slotConflict"
-                      size="small"
-                      effect="plain"
-                      type="danger"
-                    >
-                      槽位冲突
-                    </el-tag>
-                  </div>
-                  <div v-if="msg.diagnosis.actions?.length" class="diagnosis-panel__actions">
-                    <el-tag
-                      v-for="action in msg.diagnosis.actions"
-                        :key="action"
-                        effect="plain"
-                        class="suggestion-tag"
-                        :class="{ 'is-actionable': isActionableSuggestion(action) }"
-                        @click="runDiagnosisAction(action)"
-                      >
-                        {{ action }}
-                      </el-tag>
-                    </div>
-                  </div>
-
-                  <div v-if="msg.disambiguation" class="disambiguation-panel">
-                    检测到多个高相似指标。请先点击一个指标继续查询，避免分析口径偏差。
-                  </div>
-
-                  <div v-if="msg.sql && msg.sql.trim()" class="sql-block">
-                    <div class="sql-block__header">
-                      <span>执行 SQL</span>
-                      <el-button size="small" text @click="copySql(msg.sql)">
-                        <el-icon><DocumentCopy /></el-icon>
-                        复制
-                      </el-button>
-                    </div>
-                    <pre class="sql-code">{{ msg.sql }}</pre>
-                  </div>
-
-                  <div v-if="msg.data?.length" class="data-block">
-                    <div class="data-block__header">
-                      <span>结果图表与明细</span>
-                      <div class="data-block__actions">
-                        <el-button
-                          size="small"
-                          text
-                          type="primary"
-                          @click="openDataPreview(msg)"
-                        >
-                          <el-icon><FullScreen /></el-icon>
-                          全屏查看
-                        </el-button>
-                        <el-radio-group v-model="msg.dataViewMode" size="small" class="data-view-mode">
-                          <el-radio-button
-                            label="chart"
-                            :disabled="normalizedChartType(msg.renderChartType || msg.chartType, msg.data) === 'table'"
-                          >
-                            图表
-                          </el-radio-button>
-                          <el-radio-button
-                            label="split"
-                            :disabled="normalizedChartType(msg.renderChartType || msg.chartType, msg.data) === 'table'"
-                          >
-                            分栏
-                          </el-radio-button>
-                          <el-radio-button label="table">
-                            明细
-                          </el-radio-button>
-                        </el-radio-group>
-                        <el-tag size="small" effect="plain">
-                          {{ chartTypeLabel(msg.renderChartType || msg.chartType, msg.data) }}
-                        </el-tag>
-                        <el-select
-                          v-model="msg.renderChartType"
-                          size="small"
-                          class="chart-type-select"
-                          filterable
-                          @change="handleChartTypeChange(index, String($event), msg)"
-                        >
-                          <el-option
-                            v-for="option in availableChartTypes(msg)"
-                            :key="option.type"
-                            :label="option.label"
-                            :value="option.type"
-                          />
-                        </el-select>
-                        <el-button text type="primary" @click="openDataPreview(msg)">
-                          <el-icon><FullScreen /></el-icon>
-                          全屏查看
-                        </el-button>
-                      </div>
-                    </div>
-
-                    <div
-                      v-if="msg.dataViewMode !== 'table' && normalizedChartType(msg.renderChartType || msg.chartType, msg.data) !== 'table'"
-                      :ref="element => setChartRef(index, element)"
-                      class="chart-container"
-                    ></div>
-
-                    <el-table
-                      v-if="msg.dataViewMode !== 'chart'"
-                      :data="msg.data.slice(0, 8)"
-                      stripe
-                      border
-                      size="small"
-                      style="width: 100%"
-                      :header-cell-style="{ background: '#f5f8ff', fontWeight: 700 }"
-                    >
-                      <el-table-column
-                        v-for="column in columnsOf(msg.data)"
-                        :key="column"
-                        :prop="column"
-                        :label="column"
-                        min-width="120"
-                        show-overflow-tooltip
-                      />
-                    </el-table>
-                    <div v-if="msg.data.length > 8" class="data-summary">
-                      共 {{ msg.data.length }} 条数据，当前展示前 8 条。
-                    </div>
-                  </div>
-
-                  <div v-if="msg.suggestions?.length" class="suggestion-list">
-                    <span class="suggestion-list__label">下一步建议</span>
-                    <el-tag
-                      v-for="suggestion in msg.suggestions"
-                      :key="suggestion"
-                      effect="plain"
-                      class="suggestion-tag"
-                      @click="prefillAndSend(suggestion)"
-                    >
-                      {{ suggestion }}
-                    </el-tag>
-                  </div>
-
-                  <div
-                    v-if="resolveCandidateMetrics(msg).length"
-                    class="candidate-list"
-                    :class="{ 'is-disambiguation': msg.disambiguation }"
-                  >
-                    <span class="suggestion-list__label">
-                      {{ msg.disambiguation ? '请选择一个指标继续' : '可识别指标' }}
-                    </span>
-                    <el-tag
-                      v-for="metric in resolveCandidateMetrics(msg)"
-                      :key="metric"
-                      effect="light"
-                      :type="msg.disambiguation ? 'warning' : 'success'"
-                      class="suggestion-tag"
-                      @click="handleCandidateMetric(metric, msg.disambiguation)"
-                    >
-                      {{ metric }}
-                    </el-tag>
-                  </div>
-                </div>
-              </div>
-            </div>
+              <template #default="{ item, index }">
+                <ConversationMessageItem
+                  :msg="item"
+                  :index="index"
+                  :capabilities="capabilities"
+                  @copy-sql="copySql"
+                  @suggestion-click="prefillAndSend"
+                  @candidate-metric-click="handleCandidateMetric"
+                  @toggle-data-view-mode="(mode: any) => item.dataViewMode = mode"
+                  @chart-type-change="handleChartTypeChange"
+                  @open-data-preview="openDataPreview"
+                  @register-chart-ref="setChartRef"
+                  @diagnosis-action="runDiagnosisAction"
+                />
+              </template>
+            </RecycleScroller>
 
             <div v-if="loading" class="message-row is-assistant">
               <div class="message-card is-assistant">
@@ -746,13 +443,14 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { RecycleScroller } from 'vue-virtual-scroller'
+import { useLocalStorage } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 import {
   Bottom,
   ChatDotRound,
-  DocumentCopy,
   Expand,
   Fold,
   Grid,
@@ -763,26 +461,15 @@ import {
   Plus,
   Promotion,
   Search,
-  Service,
-  Setting,
-  User
+  Setting
 } from '@element-plus/icons-vue'
 import AiRuntimeBanner from '@/components/AiRuntimeBanner.vue'
 import Card from '@/components/Card.vue'
+import ConversationMessageItem from '@/components/ConversationMessageItem.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { getChartFamily, normalizeEnterpriseChartType } from '@/components/Chart/chartCatalog'
 import type { AiRuntimeStatus } from '@/types'
-import {
-  buildRankedCandidateLabel,
-  filterRankedCandidatesByReason,
-  hiddenRankedCandidateCount,
-  rankedCandidateDisplayIndex,
-  rankedCandidateReasonOptions,
-  rankedCandidateReasonSummary,
-  type RankedCandidateReasonFilter,
-  visibleRankedCandidates
-} from '@/utils/diagnosis'
 import { request, streamRequest } from '@/utils/http'
 
 interface CapabilityMetric {
@@ -932,7 +619,7 @@ const sidePanelVisible = ref(false)
 const currentConversationId = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
 const showScrollBottom = ref(false)
-const preferredChartType = ref('')
+const preferredChartType = useLocalStorage(PREFERRED_CHART_STORAGE_KEY, '')
 const chartRefs = ref<Record<number, HTMLDivElement | null>>({})
 const chartInstances = new Map<number, echarts.ECharts>()
 const previewVisible = ref(false)
@@ -942,8 +629,7 @@ const previewChartRef = ref<HTMLDivElement | null>(null)
 const chartLibraryVisible = ref(false)
 const chartLibraryKeyword = ref('')
 const chartLibraryFamily = ref('all')
-const rankedCandidateExpanded = ref<Record<string, boolean>>({})
-const rankedCandidateReasonFilters = ref<Record<string, RankedCandidateReasonFilter>>({})
+
 let previewChartInstance: echarts.ECharts | null = null
 let scrollBottomTimer: ReturnType<typeof setTimeout> | null = null
 const conversationList = ref<ConversationListItem[]>([])
@@ -1006,138 +692,6 @@ function columnsOf(data: Record<string, string | number>[]) {
   return data.length ? Object.keys(data[0]) : []
 }
 
-function sourceLabel(source?: string) {
-  switch (source) {
-    case 'llm':
-      return '外部模型'
-    case 'business-insight-ai':
-      return '业务语义 + AI'
-    case 'business-insight':
-      return '业务语义'
-    case 'guided-discovery':
-      return '指标引导'
-    case 'guided-disambiguation':
-      return '歧义澄清'
-    default:
-      return '系统回复'
-  }
-}
-
-function aiTraceLabel(message: ConversationMessage) {
-  const status = message.aiStatus
-  if (!status) {
-    return ''
-  }
-
-  if (message.source === 'llm' || message.source === 'business-insight-ai') {
-    const provider = status.providerName || status.defaultProvider || '外部模型'
-    return `AI链路：已调用 ${provider}${status.model ? ` / ${status.model}` : ''}`
-  }
-
-  if (!status.runtimeEnabled) {
-    return `AI链路：未调用外部模型（${status.reason || '运行时未启用'}）`
-  }
-
-  return 'AI链路：本次命中业务语义引擎'
-}
-
-function slotSourceLabel(source?: string) {
-  switch (source) {
-    case 'semantic-candidates':
-      return '语义候选'
-    case 'semantic-candidates-priority':
-      return '语义候选（优先级）'
-    case 'direct-metric':
-      return '指标直命中'
-    case 'synonym':
-      return '同义词映射'
-    default:
-      return source || '未标记'
-  }
-}
-
-function rankedCandidateKey(message: ConversationMessage, index: number) {
-  return `${message.timestamp}-${index}`
-}
-
-function isRankedCandidateExpanded(message: ConversationMessage, index: number) {
-  return Boolean(rankedCandidateExpanded.value[rankedCandidateKey(message, index)])
-}
-
-function toggleRankedCandidateExpanded(message: ConversationMessage, index: number) {
-  const key = rankedCandidateKey(message, index)
-  rankedCandidateExpanded.value[key] = !rankedCandidateExpanded.value[key]
-}
-
-function rankedCandidateReasonFilterForMessage(
-  message: ConversationMessage,
-  index: number
-): RankedCandidateReasonFilter {
-  return rankedCandidateReasonFilters.value[rankedCandidateKey(message, index)] || 'all'
-}
-
-function setRankedCandidateReasonFilterForMessage(
-  message: ConversationMessage,
-  index: number,
-  filter: RankedCandidateReasonFilter
-) {
-  const key = rankedCandidateKey(message, index)
-  rankedCandidateReasonFilters.value[key] = filter
-  rankedCandidateExpanded.value[key] = false
-}
-
-function rankedCandidateReasonOptionsForMessage(message: ConversationMessage) {
-  return rankedCandidateReasonOptions(
-    message.diagnosis?.slotEvidence?.secondaryMetric?.rankedCandidates
-  )
-}
-
-function filteredRankedCandidatesForMessage(message: ConversationMessage, index: number) {
-  return filterRankedCandidatesByReason(
-    message.diagnosis?.slotEvidence?.secondaryMetric?.rankedCandidates,
-    rankedCandidateReasonFilterForMessage(message, index)
-  )
-}
-
-function visibleRankedCandidatesForMessage(message: ConversationMessage, index: number) {
-  return visibleRankedCandidates(
-    filteredRankedCandidatesForMessage(message, index),
-    isRankedCandidateExpanded(message, index),
-    2
-  )
-}
-
-function hiddenRankedCountForMessage(message: ConversationMessage, index: number) {
-  return hiddenRankedCandidateCount(
-    filteredRankedCandidatesForMessage(message, index),
-    isRankedCandidateExpanded(message, index),
-    2
-  )
-}
-
-function rankedCandidateLabel(message: ConversationMessage, candidate: {
-  metric?: string
-  score?: number
-  position?: number
-  reason?: string
-}, index: number) {
-  return buildRankedCandidateLabel(
-    candidate,
-    rankedCandidateDisplayIndex(
-      message.diagnosis?.slotEvidence?.secondaryMetric?.rankedCandidates,
-      candidate,
-      index
-    )
-  )
-}
-
-function formatConfidence(value?: number) {
-  if (value === undefined || Number.isNaN(value)) {
-    return '-'
-  }
-  return `${Math.round(value * 100)}%`
-}
-
 function toNumber(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value
@@ -1198,26 +752,7 @@ function syncPreferredChartTypeFromRoute() {
   }
 }
 
-function restorePreferredChartType() {
-  if (typeof window === 'undefined') {
-    return
-  }
-  const stored = normalizePreferredChartType(window.localStorage.getItem(PREFERRED_CHART_STORAGE_KEY))
-  if (stored) {
-    preferredChartType.value = stored
-  }
-}
-
-function persistPreferredChartType() {
-  if (typeof window === 'undefined') {
-    return
-  }
-  if (!preferredChartType.value) {
-    window.localStorage.removeItem(PREFERRED_CHART_STORAGE_KEY)
-    return
-  }
-  window.localStorage.setItem(PREFERRED_CHART_STORAGE_KEY, preferredChartType.value)
-}
+// useLocalStorage 自动处理持久化，无需手动 restore/persist
 
 function resolveRenderChartType(chartType: string | undefined, data: Record<string, string | number>[]) {
   const fallback = normalizedChartType(chartType, data)
@@ -1424,23 +959,6 @@ function handleCandidateMetric(metric: string, disambiguation = false) {
     return
   }
   prefill(query)
-}
-
-function resolveCandidateMetrics(message: ConversationMessage) {
-  if (message.candidateMetrics?.length) {
-    return message.candidateMetrics
-  }
-  if (message.role !== 'assistant') {
-    return []
-  }
-  if (message.diagnosis?.code !== 'METRIC_NOT_RECOGNIZED') {
-    return []
-  }
-  const quickStart = capabilities.value.quickStartMetrics || []
-  if (quickStart.length) {
-    return quickStart.slice(0, 4)
-  }
-  return capabilities.value.metrics.slice(0, 4).map(item => item.name)
 }
 
 function isActionableSuggestion(text: string) {
@@ -2218,7 +1736,6 @@ onMounted(async () => {
   if (window.innerWidth < 1440) {
     sidePanelVisible.value = false
   }
-  restorePreferredChartType()
   syncPreferredChartTypeFromRoute()
   await Promise.all([loadCapabilities(), loadConversationList()])
   const initialQuery = route.query.q as string | undefined
@@ -2253,9 +1770,7 @@ watch(() => route.query.chartType, () => {
   syncPreferredChartTypeFromRoute()
 })
 
-watch(preferredChartType, () => {
-  persistPreferredChartType()
-})
+// useLocalStorage 自动持久化 preferredChartType，无需 watch
 </script>
 
 <style scoped>
@@ -2408,6 +1923,11 @@ watch(preferredChartType, () => {
   contain: layout paint;
 }
 
+.message-scroller {
+  min-height: 0;
+  height: 100%;
+}
+
 .welcome-panel {
   text-align: center;
   padding: 32px 12px 18px;
@@ -2503,302 +2023,6 @@ watch(preferredChartType, () => {
   margin-top: 12px;
   color: var(--cb-primary);
   font-size: 13px;
-}
-
-.message-row {
-  display: flex;
-  margin-bottom: 20px;
-}
-
-.message-row.is-user {
-  justify-content: flex-end;
-}
-
-.message-card {
-  display: flex;
-  gap: 14px;
-  width: 100%;
-  max-width: 100%;
-}
-
-.message-card.is-user {
-  flex-direction: row-reverse;
-  width: auto;
-  max-width: min(720px, 82%);
-}
-
-.message-row.is-assistant .message-card {
-  max-width: 100%;
-}
-
-.message-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 22px;
-  color: #fff;
-  background: linear-gradient(135deg, #2f6bff, #537ef5);
-  box-shadow: var(--cb-shadow-sm);
-}
-
-.message-card.is-assistant .message-avatar {
-  background: linear-gradient(135deg, #14b8a6, #2f6bff);
-}
-
-.message-content {
-  flex: 1;
-  min-width: 0;
-  padding: 18px 20px;
-  border-radius: 20px;
-  background: #fff;
-  border: 1px solid rgba(129, 157, 219, 0.14);
-  box-shadow: var(--cb-shadow-sm);
-}
-
-.message-card.is-user .message-content {
-  background: linear-gradient(135deg, rgba(47, 107, 255, 0.94), rgba(83, 126, 245, 0.94));
-  color: #fff;
-}
-
-.message-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--cb-text-secondary);
-}
-
-.message-card.is-user .message-meta {
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.message-text {
-  margin-top: 10px;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.ai-trace {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.ai-trace.is-llm {
-  color: #0f766e;
-}
-
-.diagnosis-panel {
-  margin-top: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px dashed rgba(250, 204, 21, 0.42);
-  background: rgba(255, 251, 235, 0.92);
-  color: #92400e;
-  display: grid;
-  gap: 8px;
-}
-
-.diagnosis-panel p {
-  margin: 0;
-  line-height: 1.6;
-  font-size: 13px;
-}
-
-.diagnosis-panel__head {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.diagnosis-panel__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.diagnosis-panel__evidence {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.diagnosis-panel__rank-filters {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.diagnosis-panel__evidence-label {
-  color: #854d0e;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.disambiguation-panel {
-  margin-top: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  background: rgba(255, 251, 235, 0.95);
-  color: #92400e;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.sql-block {
-  margin-top: 18px;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(129, 157, 219, 0.16);
-  background: #f8fbff;
-}
-
-.sql-block__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: rgba(47, 107, 255, 0.08);
-  color: var(--cb-indigo);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.sql-code {
-  margin: 0;
-  padding: 14px;
-  font-family: Menlo, Monaco, Consolas, monospace;
-  font-size: 13px;
-  line-height: 1.7;
-  color: #334155;
-  overflow-x: auto;
-}
-
-.data-block {
-  margin-top: 18px;
-  display: grid;
-  gap: 16px;
-  overflow: hidden;
-}
-
-.data-block__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(129, 157, 219, 0.14);
-}
-
-.data-block__header > span {
-  color: var(--cb-text-secondary);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.data-block__actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.data-view-mode :deep(.el-radio-button__inner) {
-  min-width: 56px;
-}
-
-.chart-container {
-  width: 100%;
-  min-width: 0;
-  height: clamp(360px, 46vh, 520px);
-  border-radius: 18px;
-  border: 1px solid rgba(129, 157, 219, 0.12);
-  background: linear-gradient(180deg, rgba(250, 252, 255, 0.96), rgba(244, 248, 255, 0.96));
-  padding: 10px 6px 4px;
-  box-sizing: border-box;
-}
-
-.chart-type-select {
-  width: 220px;
-}
-
-.data-summary {
-  color: var(--cb-text-secondary);
-  font-size: 12px;
-}
-
-.data-block :deep(.el-table) {
-  width: 100%;
-}
-
-.data-block :deep(.el-table .cell) {
-  line-height: 1.6;
-}
-
-.data-block :deep(.el-table__body-wrapper),
-.data-block :deep(.el-table__header-wrapper) {
-  overflow-x: auto;
-}
-
-.suggestion-list {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(129, 157, 219, 0.14);
-}
-
-.candidate-list {
-  margin-top: 10px;
-}
-
-.candidate-list.is-disambiguation {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px dashed rgba(245, 158, 11, 0.35);
-}
-
-.suggestion-list__label {
-  display: block;
-  margin-bottom: 10px;
-  color: var(--cb-text-secondary);
-  font-size: 12px;
-}
-
-.suggestion-tag {
-  margin-right: 8px;
-  margin-bottom: 8px;
-  cursor: pointer;
-}
-
-.suggestion-tag:not(.is-actionable) {
-  cursor: default;
-}
-
-.suggestion-tag.is-ranked-top {
-  border-color: rgba(245, 158, 11, 0.4);
-  background: rgba(255, 247, 237, 0.95);
-}
-
-.diagnosis-panel__rank-filter {
-  margin: 0;
-}
-
-.diagnosis-panel__rank-filter.is-active {
-  box-shadow: 0 6px 14px rgba(245, 158, 11, 0.18);
-}
-
-.diagnosis-panel__rank-toggle {
-  margin: 2px 0 8px;
-  padding: 0;
 }
 
 .composer {
@@ -3176,11 +2400,6 @@ watch(preferredChartType, () => {
     padding: 16px;
   }
 
-  .message-card,
-  .message-card.is-user {
-    max-width: 100%;
-  }
-
   .composer {
     padding: 16px;
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
@@ -3215,17 +2434,8 @@ watch(preferredChartType, () => {
     width: 100%;
   }
 
-  .chart-container {
-    height: 320px;
-    padding: 6px 0 0;
-  }
-
   .preview-chart {
     height: 320px;
-  }
-
-  .chart-type-select {
-    width: 100%;
   }
 
   .data-view-mode {

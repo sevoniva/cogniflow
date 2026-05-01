@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.chatbi.common.PageResult;
 import com.chatbi.common.Result;
 import com.chatbi.entity.QueryHistory;
@@ -12,6 +14,7 @@ import java.util.List;
 /**
  * 查询历史控制器
  */
+@Tag(name = "查询历史", description = "查询历史控制器")
 @RestController
 @RequestMapping("/api/query-history")
 @RequiredArgsConstructor
@@ -22,6 +25,7 @@ public class QueryHistoryController {
     /**
      * 分页查询查询历史
      */
+    @Operation(summary = "分页查询查询历史")
     @GetMapping
     public Result<PageResult<QueryHistory>> page(
             @RequestParam(required = false) Long userId,
@@ -34,6 +38,7 @@ public class QueryHistoryController {
     /**
      * 根据 ID 查询
      */
+    @Operation(summary = "根据 ID 查询")
     @GetMapping("/{id}")
     public Result<QueryHistory> getById(@PathVariable Long id) {
         return Result.ok(queryHistoryService.getById(id));
@@ -42,6 +47,7 @@ public class QueryHistoryController {
     /**
      * 保存查询历史
      */
+    @Operation(summary = "保存查询历史")
     @PostMapping
     public Result<QueryHistory> save(@RequestBody QueryHistory queryHistory) {
         return Result.ok(queryHistoryService.save(queryHistory));
@@ -50,6 +56,7 @@ public class QueryHistoryController {
     /**
      * 更新查询历史
      */
+    @Operation(summary = "更新查询历史")
     @PutMapping("/{id}")
     public Result<QueryHistory> update(@PathVariable Long id, @RequestBody QueryHistory queryHistory) {
         return Result.ok(queryHistoryService.update(id, queryHistory));
@@ -58,6 +65,7 @@ public class QueryHistoryController {
     /**
      * 删除查询历史
      */
+    @Operation(summary = "删除查询历史")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         queryHistoryService.delete(id);
@@ -67,6 +75,7 @@ public class QueryHistoryController {
     /**
      * 收藏/取消收藏
      */
+    @Operation(summary = "收藏/取消收藏")
     @PatchMapping("/{id}/favorite")
     public Result<Void> toggleFavorite(
             @PathVariable Long id,
@@ -78,6 +87,7 @@ public class QueryHistoryController {
     /**
      * 获取收藏列表
      */
+    @Operation(summary = "获取收藏列表")
     @GetMapping("/favorites")
     public Result<List<QueryHistory>> getFavorites(
             @RequestParam(required = false) Long userId) {
@@ -87,6 +97,7 @@ public class QueryHistoryController {
     /**
      * 获取最近查询
      */
+    @Operation(summary = "获取最近查询")
     @GetMapping("/recent")
     public Result<List<QueryHistory>> getRecent(
             @RequestParam(required = false) Long userId,

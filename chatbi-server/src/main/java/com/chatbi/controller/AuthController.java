@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.chatbi.common.Result;
 import com.chatbi.dto.auth.LoginRequest;
 import com.chatbi.dto.auth.LoginResponse;
@@ -17,6 +19,7 @@ import java.util.List;
 /**
  * 认证控制器
  */
+@Tag(name = "认证", description = "认证控制器")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -27,6 +30,7 @@ public class AuthController {
     /**
      * 用户登录
      */
+    @Operation(summary = "用户登录")
     @PostMapping("/login")
     public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
@@ -36,6 +40,7 @@ public class AuthController {
     /**
      * 用户登出
      */
+    @Operation(summary = "用户登出")
     @PostMapping("/logout")
     public Result<Void> logout() {
         authService.logout();
@@ -45,6 +50,7 @@ public class AuthController {
     /**
      * 刷新 Token
      */
+    @Operation(summary = "刷新 Token")
     @PostMapping("/refresh")
     public Result<String> refreshToken(@RequestParam String refreshToken) {
         String newToken = authService.refreshToken(refreshToken);
@@ -54,6 +60,7 @@ public class AuthController {
     /**
      * 获取当前用户信息
      */
+    @Operation(summary = "获取当前用户信息")
     @GetMapping("/me")
     public Result<LoginResponse.UserInfoVO> getCurrentUser(@AuthenticationPrincipal LoginUser loginUser) {
         LoginUser currentUser = loginUser;

@@ -1,15 +1,29 @@
 import type { ApiResponse } from '@/types'
 import { ofetch, type FetchOptions } from 'ofetch'
+import { z } from 'zod'
 
 const API_BASE = ((import.meta as any).env?.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 const TIMEOUT = 10000
 
+const ApiEnvelopeSchema = z.object({
+  success: z.boolean().optional(),
+  data: z.unknown().optional(),
+  error: z.string().optional(),
+  message: z.string().optional()
+})
+
+const ResultEnvelopeSchema = z.object({
+  code: z.number().optional(),
+  message: z.string().optional(),
+  data: z.unknown().optional()
+})
+
 function isApiEnvelope(payload: unknown): payload is { success?: boolean; data?: unknown; error?: string; message?: string } {
-  return !!payload && typeof payload === 'object' && ('success' in payload || 'error' in payload)
+  return ApiEnvelopeSchema.safeParse(payload).success
 }
 
 function isResultEnvelope(payload: unknown): payload is { code?: number; message?: string; data?: unknown } {
-  return !!payload && typeof payload === 'object' && 'code' in payload
+  return ResultEnvelopeSchema.safeParse(payload).success
 }
 
 function normalizeResponse<T>(payload: unknown, response: Response): ApiResponse<T> {

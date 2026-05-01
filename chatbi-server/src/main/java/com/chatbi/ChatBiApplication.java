@@ -6,8 +6,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.scheduling.annotation.EnableScheduling;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -15,7 +13,6 @@ import java.net.UnknownHostException;
  * ChatBI 企业版启动类
  */
 @SpringBootApplication
-@EnableScheduling
 public class ChatBiApplication {
 
     private static final Logger log = LoggerFactory.getLogger(ChatBiApplication.class);

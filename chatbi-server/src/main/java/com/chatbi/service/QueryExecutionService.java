@@ -329,7 +329,6 @@ public class QueryExecutionService {
     /**
      * 定时健康检查：清理已关闭或异常的连接池
      */
-    @Scheduled(fixedDelay = 300000) // 每5分钟执行一次
     public void healthCheck() {
         int cleaned = 0;
         for (Map.Entry<Long, HikariDataSource> entry : dataSourceCache.asMap().entrySet()) {

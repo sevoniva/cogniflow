@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.chatbi.dto.ApiResponse;
 import com.chatbi.entity.Metric;
@@ -12,6 +14,7 @@ import java.util.List;
 /**
  * 指标管理接口 - 对应前端 IAdminService 指标部分
  */
+@Tag(name = "指标管理", description = "指标管理接口 - 对应前端 IAdminService 指标部分")
 @RestController
 @RequestMapping("/api/metrics")
 @CrossOrigin(origins = "*")
@@ -23,6 +26,7 @@ public class MetricController {
     /**
      * 获取所有指标
      */
+    @Operation(summary = "获取所有指标")
     @GetMapping
     public ApiResponse<List<Metric>> getMetrics() {
         return ApiResponse.ok(metricMapper.selectList(null));
@@ -31,6 +35,7 @@ public class MetricController {
     /**
      * 获取启用的指标（用户侧调用）
      */
+    @Operation(summary = "获取启用的指标（用户侧调用）")
     @GetMapping("/active")
     public ApiResponse<List<Metric>> getActiveMetrics() {
         LambdaQueryWrapper<Metric> wrapper = new LambdaQueryWrapper<>();
@@ -41,6 +46,7 @@ public class MetricController {
     /**
      * 根据 ID 获取指标
      */
+    @Operation(summary = "根据 ID 获取指标")
     @GetMapping("/{id}")
     public ApiResponse<Metric> getMetricById(@PathVariable Long id) {
         Metric metric = metricMapper.selectById(id);
@@ -53,6 +59,7 @@ public class MetricController {
     /**
      * 新增指标
      */
+    @Operation(summary = "新增指标")
     @PostMapping
     public ApiResponse<Metric> addMetric(@RequestBody Metric request) {
         // 检查编码是否已存在
@@ -69,6 +76,7 @@ public class MetricController {
     /**
      * 更新指标
      */
+    @Operation(summary = "更新指标")
     @PutMapping("/{id}")
     public ApiResponse<Metric> updateMetric(@PathVariable Long id, @RequestBody Metric request) {
         Metric metric = metricMapper.selectById(id);
@@ -93,6 +101,7 @@ public class MetricController {
     /**
      * 删除指标
      */
+    @Operation(summary = "删除指标")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteMetric(@PathVariable Long id) {
         metricMapper.deleteById(id);
@@ -102,6 +111,7 @@ public class MetricController {
     /**
      * 切换指标状态
      */
+    @Operation(summary = "切换指标状态")
     @PatchMapping("/{id}/toggle")
     public ApiResponse<Metric> toggleMetricStatus(@PathVariable Long id) {
         Metric metric = metricMapper.selectById(id);

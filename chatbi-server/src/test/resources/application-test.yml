@@ -75,6 +75,10 @@ app:
     expiration: 3600000
     refresh-expiration: 604800000
 
+xxl:
+  job:
+    enabled: false
+
 chatbi:
   ai:
     enabled: false

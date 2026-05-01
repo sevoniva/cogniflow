@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.chatbi.common.Result;
 import com.chatbi.entity.AlertRule;
 import com.chatbi.service.AlertRuleService;
@@ -12,6 +14,7 @@ import java.util.List;
 /**
  * 告警规则控制器
  */
+@Tag(name = "告警规则", description = "告警规则控制器")
 @RestController
 @RequestMapping("/api/alert-rules")
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class AlertRuleController {
     /**
      * 获取所有告警规则
      */
+    @Operation(summary = "获取所有告警规则")
     @GetMapping
     public Result<List<AlertRule>> list() {
         return Result.ok(alertRuleService.list());
@@ -31,6 +35,7 @@ public class AlertRuleController {
     /**
      * 根据 ID 查询
      */
+    @Operation(summary = "根据 ID 查询")
     @GetMapping("/{id}")
     public Result<AlertRule> getById(@PathVariable Long id) {
         return Result.ok(alertRuleService.getById(id));
@@ -39,6 +44,7 @@ public class AlertRuleController {
     /**
      * 创建告警规则
      */
+    @Operation(summary = "创建告警规则")
     @PostMapping
     public Result<AlertRule> create(@RequestBody AlertRule alertRule) {
         AlertRule created = alertRuleService.create(alertRule);
@@ -49,6 +55,7 @@ public class AlertRuleController {
     /**
      * 更新告警规则
      */
+    @Operation(summary = "更新告警规则")
     @PutMapping("/{id}")
     public Result<AlertRule> update(
             @PathVariable Long id,
@@ -61,6 +68,7 @@ public class AlertRuleController {
     /**
      * 删除告警规则
      */
+    @Operation(summary = "删除告警规则")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         AlertRule existing = alertRuleService.getById(id);
@@ -72,6 +80,7 @@ public class AlertRuleController {
     /**
      * 启用/禁用告警规则
      */
+    @Operation(summary = "启用/禁用告警规则")
     @PatchMapping("/{id}/status")
     public Result<Void> toggleStatus(
             @PathVariable Long id,

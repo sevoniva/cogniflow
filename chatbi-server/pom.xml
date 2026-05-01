@@ -25,6 +25,7 @@
         <druid.version>1.2.20</druid.version>
         <hutool.version>5.8.24</hutool.version>
         <resilience4j.version>2.2.0</resilience4j.version>
+        <xxl-job.version>2.4.0</xxl-job.version>
     </properties>
 
     <dependencies>
@@ -56,6 +57,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!-- XXL-JOB -->
+        <dependency>
+            <groupId>com.xuxueli</groupId>
+            <artifactId>xxl-job-core</artifactId>
+            <version>${xxl-job.version}</version>
         </dependency>
 
         <!-- Mail -->

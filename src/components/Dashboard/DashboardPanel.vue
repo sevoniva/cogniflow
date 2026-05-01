@@ -83,6 +83,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { Download, Refresh, Edit, Delete } from '@element-plus/icons-vue';
+import { exportToExcel } from '@/utils/export';
 import { GridLayout, GridItem } from 'vue-grid-layout';
 import ChatBarChart from '../Chart/ChatBarChart.vue';
 import ChatLineChart from '../Chart/ChatLineChart.vue';
@@ -159,6 +160,13 @@ const getChartComponent = (type: string) => {
 
 // 事件处理
 const handleExport = () => {
+  // 导出所有图表数据为 Excel
+  layout.value.forEach((item, idx) => {
+    const data = item.chartProps?.data || item.chartProps?.seriesData || []
+    if (Array.isArray(data) && data.length > 0) {
+      exportToExcel(data as Record<string, unknown>[], item.title || `chart-${idx + 1}`, item.title || 'Sheet1')
+    }
+  })
   emit('export');
 };
 

@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.chatbi.common.Result;
 import com.chatbi.support.SqlDialectHelper;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,7 @@ import java.util.*;
  * 销售分析控制器
  */
 @Slf4j
+@Tag(name = "销售分析", description = "销售分析控制器")
 @RestController
 @RequestMapping("/api/analytics/sales")
 @CrossOrigin(origins = "*")
@@ -27,6 +30,7 @@ public class SalesAnalyticsController {
     /**
      * 销售额趋势（按月）
      */
+    @Operation(summary = "销售额趋势（按月）")
     @GetMapping("/trend")
     public Result<List<Map<String, Object>>> getSalesTrend(
             @RequestParam(required = false) String startDate,
@@ -61,6 +65,7 @@ public class SalesAnalyticsController {
     /**
      * 产品销售排行
      */
+    @Operation(summary = "产品销售排行")
     @GetMapping("/product-ranking")
     public Result<List<Map<String, Object>>> getProductRanking(
             @RequestParam(defaultValue = "10") int limit) {
@@ -87,6 +92,7 @@ public class SalesAnalyticsController {
     /**
      * 地区销售分布
      */
+    @Operation(summary = "地区销售分布")
     @GetMapping("/region-distribution")
     public Result<List<Map<String, Object>>> getRegionDistribution() {
         try {
@@ -111,6 +117,7 @@ public class SalesAnalyticsController {
     /**
      * 销售人员业绩排行
      */
+    @Operation(summary = "销售人员业绩排行")
     @GetMapping("/salesperson-ranking")
     public Result<List<Map<String, Object>>> getSalespersonRanking(
             @RequestParam(defaultValue = "20") int limit) {
@@ -138,6 +145,7 @@ public class SalesAnalyticsController {
     /**
      * 客户分析
      */
+    @Operation(summary = "客户分析")
     @GetMapping("/customer-analysis")
     public Result<List<Map<String, Object>>> getCustomerAnalysis() {
         try {
@@ -162,6 +170,7 @@ public class SalesAnalyticsController {
     /**
      * 订单状态统计
      */
+    @Operation(summary = "订单状态统计")
     @GetMapping("/order-status")
     public Result<List<Map<String, Object>>> getOrderStatus() {
         try {
@@ -183,6 +192,7 @@ public class SalesAnalyticsController {
     /**
      * 产品类别分析
      */
+    @Operation(summary = "产品类别分析")
     @GetMapping("/category-analysis")
     public Result<List<Map<String, Object>>> getCategoryAnalysis() {
         try {
@@ -208,6 +218,7 @@ public class SalesAnalyticsController {
     /**
      * 销售概览（汇总数据）
      */
+    @Operation(summary = "销售概览（汇总数据）")
     @GetMapping("/overview")
     public Result<Map<String, Object>> getOverview() {
         try {

@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.chatbi.common.Result;
 import com.chatbi.entity.Dashboard;
 import com.chatbi.service.BusinessInsightService;
@@ -13,6 +15,7 @@ import java.util.Map;
 /**
  * 仪表板控制器
  */
+@Tag(name = "仪表板", description = "仪表板控制器")
 @RestController
 @RequestMapping("/api/dashboards")
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class DashboardController {
     /**
      * 获取仪表板列表
      */
+    @Operation(summary = "获取仪表板列表")
     @GetMapping
     public Result<List<Dashboard>> list(
             @RequestParam(required = false) Long createdBy,
@@ -34,6 +38,7 @@ public class DashboardController {
     /**
      * 根据 ID 查询
      */
+    @Operation(summary = "根据 ID 查询")
     @GetMapping("/{id}")
     public Result<Dashboard> getById(@PathVariable Long id) {
         return Result.ok(dashboardService.getById(id));
@@ -42,6 +47,7 @@ public class DashboardController {
     /**
      * 创建仪表板
      */
+    @Operation(summary = "创建仪表板")
     @PostMapping
     public Result<Dashboard> create(@RequestBody Dashboard dashboard) {
         return Result.ok(dashboardService.create(dashboard));
@@ -50,6 +56,7 @@ public class DashboardController {
     /**
      * 更新仪表板
      */
+    @Operation(summary = "更新仪表板")
     @PutMapping("/{id}")
     public Result<Dashboard> update(
             @PathVariable Long id,
@@ -60,6 +67,7 @@ public class DashboardController {
     /**
      * 删除仪表板
      */
+    @Operation(summary = "删除仪表板")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         dashboardService.delete(id);
@@ -69,6 +77,7 @@ public class DashboardController {
     /**
      * 发布/取消��布
      */
+    @Operation(summary = "发布/取消发布")
     @PatchMapping("/{id}/publish")
     public Result<Void> togglePublish(
             @PathVariable Long id,
@@ -80,6 +89,7 @@ public class DashboardController {
     /**
      * 更新布局配置
      */
+    @Operation(summary = "更新布局配置")
     @PutMapping("/{id}/layout")
     public Result<Dashboard> updateLayout(
             @PathVariable Long id,
@@ -90,6 +100,7 @@ public class DashboardController {
     /**
      * 获取仪表板统计数据
      */
+    @Operation(summary = "获取仪表板统计数据")
     @GetMapping("/{id}/stats")
     public Result<Map<String, Object>> getDashboardStats(@PathVariable Long id) {
         return Result.ok(businessInsightService.getDashboardStats());
@@ -98,6 +109,7 @@ public class DashboardController {
     /**
      * 获取仪表板图表数据
      */
+    @Operation(summary = "获取仪表板图表数据")
     @GetMapping("/{id}/chart-data")
     public Result<Map<String, Object>> getChartData(
             @PathVariable Long id,

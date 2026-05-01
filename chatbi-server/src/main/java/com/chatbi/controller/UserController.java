@@ -1,5 +1,7 @@
 package com.chatbi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.chatbi.common.Result;
 import com.chatbi.entity.SysUser;
 import com.chatbi.service.UserService;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 用户管理控制器
  */
+@Tag(name = "用户管理", description = "用户管理控制器")
 @RestController
 @RequestMapping("/api/system/users")
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class UserController {
     /**
      * 根据 ID 查询用户
      */
+    @Operation(summary = "根据 ID 查询用户")
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('system:user:query')")
     public Result<SysUser> get(@PathVariable Long id) {
@@ -33,6 +37,7 @@ public class UserController {
     /**
      * 创建用户
      */
+    @Operation(summary = "创建用户")
     @PostMapping
     @PreAuthorize("hasAuthority('system:user:add')")
     public Result<SysUser> create(@RequestBody SysUser user) {
@@ -43,6 +48,7 @@ public class UserController {
     /**
      * 更新用户
      */
+    @Operation(summary = "更新用户")
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('system:user:update')")
     public Result<SysUser> update(@PathVariable Long id, @RequestBody SysUser user) {
@@ -53,6 +59,7 @@ public class UserController {
     /**
      * 删除用户
      */
+    @Operation(summary = "删除用户")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('system:user:delete')")
     public Result<Void> delete(@PathVariable Long id) {
@@ -63,6 +70,7 @@ public class UserController {
     /**
      * 重置密码
      */
+    @Operation(summary = "重置密码")
     @PostMapping("/{id}/password/reset")
     @PreAuthorize("hasAuthority('system:user:update')")
     public Result<Void> resetPassword(
@@ -76,6 +84,7 @@ public class UserController {
     /**
      * 修改密码
      */
+    @Operation(summary = "修改密码")
     @PostMapping("/password/change")
     public Result<Void> changePassword(
             @RequestParam String oldPassword,
@@ -113,6 +122,7 @@ public class UserController {
     /**
      * 更新用户状态
      */
+    @Operation(summary = "更新用户状态")
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAuthority('system:user:update')")
     public Result<Void> updateStatus(

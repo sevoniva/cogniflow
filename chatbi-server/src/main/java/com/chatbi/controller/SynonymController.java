@@ -2,10 +2,9 @@ package com.chatbi.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.chatbi.dto.ApiResponse;
+import com.chatbi.common.Result;
 import com.chatbi.entity.Synonym;
-import com.chatbi.repository.SynonymMapper;
+import com.chatbi.service.SynonymService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,41 +19,28 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SynonymController {
 
-    private final SynonymMapper synonymMapper;
+    private final SynonymService synonymService;
 
-    /**
-     * 获取所有同义词
-     */
     @Operation(summary = "获取所有同义词")
     @GetMapping
-    public ApiResponse<List<Synonym>> getSynonyms() {
-        return ApiResponse.ok(synonymMapper.selectList(null));
+    public Result<List<Synonym>> getSynonyms() {
+        return Result.ok(synonymService.list());
     }
 
-    /**
-     * 新增同义词
-     */
     @Operation(summary = "新增同义词")
     @PostMapping
-    public ApiResponse<Synonym> addSynonym(@RequestBody Synonym request) {
-        // 检查是否已存在
-        LambdaQueryWrapper<Synonym> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Synonym::getStandardWord, request.getStandardWord());
-        if (synonymMapper.selectCount(wrapper) > 0) {
-            return ApiResponse.error("该标准词已存在");
+    public Result<Synonym> addSynonym(@RequestBody Synonym request) {
+        try {
+            return Result.ok(synonymService.create(request));
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
         }
-
-        synonymMapper.insert(request);
-        return ApiResponse.ok(request);
     }
 
-    /**
-     * 删除同义词
-     */
     @Operation(summary = "删除同义词")
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> deleteSynonym(@PathVariable Long id) {
-        synonymMapper.deleteById(id);
-        return ApiResponse.ok();
+    public Result<Void> deleteSynonym(@PathVariable Long id) {
+        synonymService.delete(id);
+        return Result.ok();
     }
 }

@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.chatbi.config.AiConfig;
-import com.chatbi.dto.ApiResponse;
+import com.chatbi.common.Result;
 import com.chatbi.entity.Metric;
 import com.chatbi.entity.QueryHistory;
 import com.chatbi.entity.QueryResult;
@@ -13,6 +13,7 @@ import com.chatbi.repository.DataSourceMapper;
 import com.chatbi.repository.MetricMapper;
 import com.chatbi.repository.SynonymMapper;
 import com.chatbi.support.MetricSemanticMatcher;
+import com.chatbi.service.MetricMatchingService;
 import com.chatbi.service.AiModelService;
 import com.chatbi.service.AiQueryService;
 import com.chatbi.service.BusinessInsightService;
@@ -47,6 +48,7 @@ public class QueryController {
     private static final double TYPO_FUZZY_MATCH_THRESHOLD = 0.66;
     private static final double TYPO_FUZZY_GAP_THRESHOLD = 0.10;
 
+    private final MetricMatchingService metricMatchingService;
     private final MetricMapper metricMapper;
     private final SynonymMapper synonymMapper;
     private final DataSourceMapper dataSourceMapper;
@@ -65,21 +67,19 @@ public class QueryController {
      */
     @Operation(summary = "执行查询")
     @PostMapping
-    public ApiResponse<QueryResult> executeQuery(@RequestBody Map<String, String> request, HttpServletRequest servletRequest) {
+    public Result<QueryResult> executeQuery(@RequestBody Map<String, String> request, HttpServletRequest servletRequest) {
         String text = extractQueryText(request);
         Long userId = resolveUserId(request, servletRequest);
         long startTime = System.currentTimeMillis();
 
         if (text == null || text.trim().isEmpty()) {
-            return ApiResponse.error("查询内容不能为空");
+            return Result.error("查询内容不能为空");
         }
 
         try {
             // 1. 获取启用的指标
-            LambdaQueryWrapper<Metric> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(Metric::getStatus, "active"); // status = "active" 表示启用
-            List<Metric> activeMetrics = metricMapper.selectList(wrapper);
-            List<Synonym> synonyms = synonymMapper.selectList(null);
+            List<Metric> activeMetrics = metricMatchingService.getActiveMetrics();
+            List<Synonym> synonyms = metricMatchingService.getAllSynonyms();
             Map<String, Object> aiStatus = buildAiStatus();
 
             if (activeMetrics.isEmpty()) {
@@ -96,7 +96,7 @@ public class QueryController {
                     "当前未配置可用业务指标，已切换到经营总览。",
                     List.of("进入管理后台新增指标", "配置指标同义词", "返回后重试查询"), true);
                 saveSuccessHistory(text, userId, 1L, recovered.getData(), System.currentTimeMillis() - startTime);
-                return ApiResponse.ok(recovered);
+                return Result.ok(recovered);
             }
 
             com.chatbi.entity.DataSource dataSource = dataSourceMapper.selectById(1L);
@@ -129,7 +129,7 @@ public class QueryController {
                         + (examples.isBlank() ? "" : "可直接这样问：" + examples + "。")));
                 }
                 saveSuccessHistory(text, userId, dataSource != null ? dataSource.getId() : 1L, disambiguationResult.getData(), System.currentTimeMillis() - startTime);
-                return ApiResponse.ok(disambiguationResult);
+                return Result.ok(disambiguationResult);
             }
 
             if (matched != null) {
@@ -139,7 +139,7 @@ public class QueryController {
                 result.setAiStatus(aiStatus);
                 attachDiagnosis(result, "QUERY_EXECUTED", "已识别业务指标并返回查询结果。", result.getSuggestions(), false);
                 saveSuccessHistory(text, userId, dataSource != null ? dataSource.getId() : 1L, result.getData(), System.currentTimeMillis() - startTime);
-                return ApiResponse.ok(result);
+                return Result.ok(result);
             }
 
             if (isGreetingIntent(text) || !aiConfig.isRuntimeEnabled() || isOverviewIntent(text)) {
@@ -158,7 +158,7 @@ public class QueryController {
                     "未识别到可直接查询的业务指标，已返回经营总览。",
                     result.getSuggestions(), true);
                 saveSuccessHistory(text, userId, dataSource != null ? dataSource.getId() : 1L, result.getData(), System.currentTimeMillis() - startTime);
-                return ApiResponse.ok(result);
+                return Result.ok(result);
             }
 
             // 2. 获取数据源（使用第一个可用的数据源）
@@ -177,7 +177,7 @@ public class QueryController {
                     "查询数据源不可用，已自动降级为经营总览。",
                     List.of("检查数据源连接", "确认数据源账号权限", "完成配置后重试"), true);
                 saveSuccessHistory(text, userId, 1L, recovered.getData(), System.currentTimeMillis() - startTime);
-                return ApiResponse.ok(recovered);
+                return Result.ok(recovered);
             }
 
             // 3. 提取表结构
@@ -197,7 +197,7 @@ public class QueryController {
                     "数据源未发现可用业务表，已自动降级为经营总览。",
                     List.of("同步数据源元数据", "确认业务表是否存在", "检查表权限后重试"), true);
                 saveSuccessHistory(text, userId, dataSource.getId(), recovered.getData(), System.currentTimeMillis() - startTime);
-                return ApiResponse.ok(recovered);
+                return Result.ok(recovered);
             }
 
             // 4. 使用AI生成SQL
@@ -221,7 +221,7 @@ public class QueryController {
                     "外部模型 SQL 生成失败，已切换语义兜底结果。",
                     result.getSuggestions(), true);
                 saveSuccessHistory(text, userId, dataSource.getId(), result.getData(), System.currentTimeMillis() - startTime);
-                return ApiResponse.ok(result);
+                return Result.ok(result);
             }
 
             // 5. 验证SQL安全性
@@ -250,7 +250,7 @@ public class QueryController {
                     "生成 SQL 未通过安全治理校验，系统已阻断并返回经营总览。",
                     List.of("补充明确业务指标", "补充时间范围或维度", "在 AI 对话中继续追问"), true);
                 saveSuccessHistory(text, userId, dataSource.getId(), recovered.getData(), System.currentTimeMillis() - startTime);
-                return ApiResponse.ok(recovered);
+                return Result.ok(recovered);
             }
 
             // 6. 执行SQL
@@ -278,7 +278,7 @@ public class QueryController {
             attachDiagnosis(result, "QUERY_EXECUTED", "查询执行完成，已返回结构化结果。", result.getSuggestions(), false);
 
             log.info("查询执行成功 - 耗时: {}ms, 结果数: {}", executionTime, data.size());
-            return ApiResponse.ok(result);
+            return Result.ok(result);
 
         } catch (Exception e) {
             log.error("查询执行失败 - 查询: {}", text, e);
@@ -292,10 +292,8 @@ public class QueryController {
             }
 
             try {
-                LambdaQueryWrapper<Metric> wrapper = new LambdaQueryWrapper<>();
-                wrapper.eq(Metric::getStatus, "active");
-                List<Metric> activeMetrics = metricMapper.selectList(wrapper);
-                List<Synonym> synonyms = synonymMapper.selectList(null);
+                List<Metric> activeMetrics = metricMatchingService.getActiveMetrics();
+                List<Synonym> synonyms = metricMatchingService.getAllSynonyms();
                 List<String> candidateMetrics = recommendMetricNames(text, activeMetrics, synonyms);
                 List<String> guidedSuggestions = buildGuidedSuggestions(text, candidateMetrics);
 
@@ -312,10 +310,10 @@ public class QueryController {
                 if (!candidateMetrics.isEmpty()) {
                     recovered.setSummary(trimSummary(recovered.getSummary() + " 可直接查询指标：" + String.join("、", candidateMetrics) + "。"));
                 }
-                return ApiResponse.ok(recovered);
+                return Result.ok(recovered);
             } catch (Exception recoveryEx) {
                 log.error("查询降级恢复失败 - 查询: {}", text, recoveryEx);
-                return ApiResponse.ok(buildEmergencyRecoveryResult(text, e, recoveryEx));
+                return Result.ok(buildEmergencyRecoveryResult(text, e, recoveryEx));
             }
         }
     }
@@ -325,11 +323,11 @@ public class QueryController {
      */
     @Operation(summary = "执行可视化查询构建器生成的 SQL")
     @PostMapping("/execute")
-    public ApiResponse<Map<String, Object>> executeSql(@RequestBody Map<String, Object> request, HttpServletRequest servletRequest) {
+    public Result<Map<String, Object>> executeSql(@RequestBody Map<String, Object> request, HttpServletRequest servletRequest) {
         Object sqlValue = request != null ? request.get("sql") : null;
         String sql = sqlValue == null ? null : String.valueOf(sqlValue).trim();
         if (sql == null || sql.isEmpty()) {
-            return ApiResponse.error("SQL 不能为空");
+            return Result.error("SQL 不能为空");
         }
 
         QueryGovernanceService.ValidationResult validation = aiQueryService.validateSqlDetail(sql);
@@ -343,7 +341,7 @@ public class QueryController {
                 validation.message(),
                 "query-builder"
             );
-            return ApiResponse.error(validation.message());
+            return Result.error(validation.message());
         }
 
         Long userId = resolveUserId(request, servletRequest);
@@ -354,7 +352,7 @@ public class QueryController {
 
         com.chatbi.entity.DataSource dataSource = dataSourceMapper.selectById(datasourceId);
         if (dataSource == null) {
-            return ApiResponse.error("数据源不存在");
+            return Result.error("数据源不存在");
         }
 
         try {
@@ -363,10 +361,10 @@ public class QueryController {
             payload.put("records", records);
             payload.put("total", records.size());
             payload.put("sql", sql);
-            return ApiResponse.ok(payload);
+            return Result.ok(payload);
         } catch (Exception e) {
             log.error("执行构建器 SQL 失败 - datasourceId: {}, sql: {}", datasourceId, sql, e);
-            return ApiResponse.error("SQL 执行失败：" + e.getMessage());
+            return Result.error("SQL 执行失败：" + e.getMessage());
         }
     }
 
@@ -405,10 +403,8 @@ public class QueryController {
      */
     @Operation(summary = "获取热门查询（基于启用的指标）")
     @GetMapping("/hot")
-    public ApiResponse<List<Map<String, Object>>> getHotQueries() {
-        LambdaQueryWrapper<Metric> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Metric::getStatus, "active");
-        List<Metric> activeMetrics = metricMapper.selectList(wrapper);
+    public Result<List<Map<String, Object>>> getHotQueries() {
+        List<Metric> activeMetrics = metricMatchingService.getActiveMetrics();
         List<QueryHistory> histories = queryHistoryService.page(1L, 1L, 500L).getRecords();
         List<Map<String, Object>> hotQueries = new ArrayList<>();
         String[] timePrefixes = {"本月", "本季度", "今年", "上月"};
@@ -428,7 +424,7 @@ public class QueryController {
             hotQueries.add(item);
         }
 
-        return ApiResponse.ok(hotQueries);
+        return Result.ok(hotQueries);
     }
 
     /**
@@ -436,8 +432,8 @@ public class QueryController {
      */
     @Operation(summary = "获取示例查询")
     @GetMapping("/examples")
-    public ApiResponse<List<String>> getExamples() {
-        return ApiResponse.ok(List.of(
+    public Result<List<String>> getExamples() {
+        return Result.ok(List.of(
             "先给我一个经营总览",
             "本月销售额是多少？",
             "库存周转天数按仓库对比",

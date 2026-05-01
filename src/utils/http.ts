@@ -282,6 +282,16 @@ export async function streamRequest(
 
   const decoder = new TextDecoder()
   let buffer = ''
+  let eventName = ''
+  const dataLines: string[] = []
+
+  function flushEvent() {
+    if (eventName && dataLines.length > 0) {
+      onChunk({ event: eventName, data: dataLines.join('\n') })
+    }
+    eventName = ''
+    dataLines.length = 0
+  }
 
   while (true) {
     const { done, value } = await reader.read()
@@ -289,27 +299,19 @@ export async function streamRequest(
 
     buffer += decoder.decode(value, { stream: true })
 
-    // SSE 格式解析：event: xxx\ndata: yyy\n\n
-    let eventName = ''
     const lines = buffer.split('\n')
-    buffer = ''
+    // 最后一个元素可能是不完整的行，留在 buffer 中
+    buffer = lines.pop() || ''
 
     for (const line of lines) {
       if (line.startsWith('event:')) {
         eventName = line.slice(6).trim()
       } else if (line.startsWith('data:')) {
-        const data = line.slice(5).trim()
-        if (eventName) {
-          onChunk({ event: eventName, data })
-          eventName = ''
-        }
+        dataLines.push(line.slice(5))
       } else if (line.trim() === '') {
-        // 空行分隔事件
-        eventName = ''
-      } else {
-        // 不完整的行，放回 buffer
-        buffer = line
+        flushEvent()
       }
     }
   }
+  flushEvent()
 }

@@ -11,6 +11,7 @@ import com.chatbi.repository.DataSourceMapper;
 import com.chatbi.repository.MetricMapper;
 import com.chatbi.repository.SynonymMapper;
 import com.chatbi.support.MetricSemanticMatcher;
+import com.chatbi.service.MetricMatchingService;
 import com.chatbi.service.AiQueryService;
 import com.chatbi.service.AiModelService;
 import com.chatbi.service.AccessAlertService;
@@ -101,6 +102,7 @@ public class ConversationController {
     );
 
     private final ConversationService conversationService;
+    private final MetricMatchingService metricMatchingService;
     private final AiQueryService aiQueryService;
     private final AiModelService aiModelService;
     private final QueryExecutionService queryExecutionService;
@@ -487,8 +489,8 @@ public class ConversationController {
     @Operation(summary = "获取对话能力说明与运行状态")
     @GetMapping("/capabilities")
     public Result<Map<String, Object>> getCapabilities() {
-        List<Metric> activeMetrics = getActiveMetrics();
-        List<Synonym> synonyms = synonymMapper.selectList(null);
+        List<Metric> activeMetrics = metricMatchingService.getActiveMetrics();
+        List<Synonym> synonyms = metricMatchingService.getAllSynonyms();
 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("ai", buildAiStatus());
@@ -827,8 +829,8 @@ public class ConversationController {
     }
 
     private QueryExecution resolveQuery(String conversationId, String message, boolean isFollowUp, Long userId) {
-        List<Metric> activeMetrics = getActiveMetrics();
-        List<Synonym> synonyms = synonymMapper.selectList(null);
+        List<Metric> activeMetrics = metricMatchingService.getActiveMetrics();
+        List<Synonym> synonyms = metricMatchingService.getAllSynonyms();
         boolean overviewIntent = isOverviewIntent(message);
 
         if (isGreetingIntent(message)) {
@@ -1889,7 +1891,7 @@ public class ConversationController {
             reply = aiModelService.generateText(buildOverviewPrompt(message, overviewRows));
         } catch (Exception ex) {
             log.warn("经营总览 AI 解读失败，降级为经营概览引导 - {}", ex.getMessage());
-            return buildGuidedDiscovery(message, getActiveMetrics(), synonymMapper.selectList(null), "外部大模型生成经营摘要失败，已切换为经营概览");
+            return buildGuidedDiscovery(message, metricMatchingService.getActiveMetrics(), metricMatchingService.getAllSynonyms(), "外部大模型生成经营摘要失败，已切换为经营概览");
         }
 
         return new QueryExecution(

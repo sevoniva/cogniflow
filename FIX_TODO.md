@@ -24,16 +24,16 @@
 - [x] **17.** 前端 Dashboard ECharts 实例 dispose（修复内存泄漏）- AgileDashboard/SalesDashboard/OperationDashboard
 - [x] **18.** 修复 fire-and-forget 异步调用（history/favorite 页面 await）
 - [x] **19.** Dashboard 清空画布添加确认弹窗
-- [ ] **20.** 统一 API 响应格式，删除 `ApiResponse`，统一用 `Result`
-- [ ] **21.** 删除重复的 `dto.PageResult`，统一用 `common.PageResult`
-- [ ] **22.** 提取 QueryController/ConversationController 指标匹配逻辑到 Service
-- [ ] **23.** 前端 Dashboard 页面添加 Loading 状态
+- [x] **20.** 统一 API 响应格式，删除 `ApiResponse`，统一用 `Result`
+- [x] **21.** 删除重复的 `dto.PageResult`，统一用 `common.PageResult`
+- [x] **22.** 提取 QueryController/ConversationController 指标匹配逻辑到 Service
+- [x] **23.** 前端 Dashboard 页面添加 Loading 状态
 - [ ] **24.** 统一 HTTP 客户端，删除双客户端
-- [ ] **25.** 导出接口添加大小限制
+- [x] **25.** 导出接口添加大小限制
 - [ ] **26.** SSO 回调 URL 从配置读取，token 用 fragment 传递
-- [ ] **27.** Controller 直接注入 Mapper 改为通过 Service 调用
+- [x] **27.** Controller 直接注入 Mapper 改为通过 Service 调用
 - [ ] **28.** WebSocket 断线重连
-- [ ] **29.** SSE 解析支持多行 data
+- [x] **29.** SSE 解析支持多行 data
 
 ## P2 — 体验/可维护
 
@@ -52,7 +52,7 @@
 | 阶段 | 状态 |
 |------|------|
 | P0 安全/功能阻断 | ✅ 已完成 (16/16) |
-| P1 架构/体验 | 🔄 进行中 (3/13) |
+| P1 架构/体验 | 🔄 进行中 (10/13) |
 | P2 体验/可维护 | 待开始 (0/9) |
 | 单元测试 | ✅ 50/50 通过 |
 | Docker 部署 | ✅ 已部署运行 |

@@ -83,7 +83,7 @@
       </div>
 
       <!-- 中间画布区域 -->
-      <div class="canvas-area">
+      <div class="canvas-area" v-loading="pageLoading" element-loading-text="加载仪表板...">
         <div class="canvas-toolbar" v-if="!previewMode">
           <el-button-group>
             <el-button :icon="Plus" @click="addComponent" size="small">添加组件</el-button>
@@ -410,6 +410,7 @@ const dashboardName = ref('')
 const nameDialogVisible = ref(false)
 const previewMode = ref(false)
 const saving = ref(false)
+const pageLoading = ref(true)
 
 const selectedDatasource = ref<number>()
 const datasources = ref<DataSource[]>([])
@@ -1093,8 +1094,12 @@ async function confirmConfig() {
 }
 
 onMounted(async () => {
-  await loadDashboard()
-  await loadDatasources()
+  try {
+    await loadDashboard()
+    await loadDatasources()
+  } finally {
+    pageLoading.value = false
+  }
 })
 
 onUnmounted(() => {

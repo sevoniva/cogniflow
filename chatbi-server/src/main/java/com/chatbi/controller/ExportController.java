@@ -27,15 +27,23 @@ public class ExportController {
 
     private final ExportService exportService;
 
+    private static final int MAX_EXCEL_ROWS = 10000;
+    private static final int MAX_PDF_ROWS = 5000;
+
     /**
      * 导出 Excel
      */
     @PostMapping("/excel")
     @Operation(summary = "导出 Excel 文件")
-    public ResponseEntity<byte[]> exportExcel(
+    public ResponseEntity<?> exportExcel(
             @RequestBody List<Map<String, Object>> data,
             @RequestParam String fileName,
             @RequestHeader List<String> headers) {
+
+        if (data.size() > MAX_EXCEL_ROWS) {
+            return ResponseEntity.badRequest().body(
+                Result.error("导出行数超限，最多支持 " + MAX_EXCEL_ROWS + " 行，当前 " + data.size() + " 行"));
+        }
 
         byte[] excelData = exportService.exportExcel(data, headers, fileName);
 
@@ -54,10 +62,15 @@ public class ExportController {
      */
     @PostMapping("/pdf")
     @Operation(summary = "导出 PDF 文件")
-    public ResponseEntity<byte[]> exportPdf(
+    public ResponseEntity<?> exportPdf(
             @RequestBody List<Map<String, Object>> data,
             @RequestParam String title,
             @RequestHeader List<String> headers) {
+
+        if (data.size() > MAX_PDF_ROWS) {
+            return ResponseEntity.badRequest().body(
+                Result.error("导出行数超限，最多支持 " + MAX_PDF_ROWS + " 行，当前 " + data.size() + " 行"));
+        }
 
         byte[] pdfData = exportService.exportPdf(data, headers, title);
 

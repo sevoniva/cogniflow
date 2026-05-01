@@ -92,60 +92,62 @@
         </div>
 
         <div class="canvas" ref="canvasRef" @dragover="onDragOver" @drop="onDrop">
-          <div
-            v-for="component in components"
-            :key="component.id"
-            class="canvas-component"
-            :class="{ 'selected': selectedComponent?.id === component.id, 'preview': previewMode }"
-            :style="{
-              left: component.x + 'px',
-              top: component.y + 'px',
-              width: component.width + 'px',
-              height: component.height + 'px',
-              zIndex: component.zIndex
-            }"
-            @click="selectComponent(component)"
-            @mousedown="startMove($event, component)"
+          <grid-layout
+            v-model:layout="gridLayout"
+            :col-num="GRID_COLS"
+            :row-height="GRID_ROW_HEIGHT"
+            :margin="GRID_MARGIN"
+            :is-draggable="!previewMode"
+            :is-resizable="!previewMode"
+            :vertical-compact="true"
+            :use-css-transforms="true"
+            @layout-updated="syncLayoutToComponents"
           >
-            <!-- 组件内容 -->
-            <div class="component-content" @mousedown.stop>
-              <div class="component-header">
-                <span class="component-title">{{ component.title || '未命名组件' }}</span>
-                <div class="component-actions" v-if="!previewMode">
-                  <el-button link @click.stop="editComponent(component)">
-                    <el-icon><Edit /></el-icon>
-                  </el-button>
-                  <el-button link @click.stop="removeComponent(component)">
-                    <el-icon><Delete /></el-icon>
-                  </el-button>
-                </div>
-              </div>
-              <div class="component-body">
-                <!-- 图表渲染区域 -->
-                <div v-if="component.chartType" class="chart-placeholder">
-                  <div class="chart-preview" :ref="el => initChart(el as Element | ComponentPublicInstance | null, component)">
-                    <v-chart
-                      v-if="component.chartOption"
-                      :option="component.chartOption"
-                      :autoresize="true"
-                      style="width: 100%; height: 100%"
-                    />
+            <grid-item
+              v-for="item in gridLayout"
+              :key="item.i"
+              :x="item.x"
+              :y="item.y"
+              :w="item.w"
+              :h="item.h"
+              :i="item.i"
+              :min-w="2"
+              :min-h="2"
+              class="canvas-component"
+              :class="{ 'selected': selectedComponent?.id === Number(item.i), 'preview': previewMode }"
+              @click="selectComponentById(Number(item.i))"
+            >
+              <div class="component-content">
+                <div class="component-header">
+                  <span class="component-title">{{ item.title || '未命名组件' }}</span>
+                  <div class="component-actions" v-if="!previewMode">
+                    <el-button link @click.stop="editComponentById(Number(item.i))">
+                      <el-icon><Edit /></el-icon>
+                    </el-button>
+                    <el-button link @click.stop="removeComponentById(Number(item.i))">
+                      <el-icon><Delete /></el-icon>
+                    </el-button>
                   </div>
                 </div>
-                <div v-else class="empty-chart">
-                  <el-icon :size="48"><DataLine /></el-icon>
-                  <p>点击配置数据</p>
+                <div class="component-body">
+                  <div v-if="item.chartType" class="chart-placeholder">
+                    <div class="chart-preview">
+                      <v-chart
+                        v-if="item.chartOption"
+                        :option="item.chartOption"
+                        :autoresize="true"
+                        style="width: 100%; height: 100%"
+                      />
+                    </div>
+                  </div>
+                  <div v-else class="empty-chart">
+                    <el-icon :size="48"><DataLine /></el-icon>
+                    <p>点击配置数据</p>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <!-- 调整大小手柄 -->
-            <div
-              v-if="!previewMode && selectedComponent?.id === component.id"
-              class="resize-handle resize-se"
-              @mousedown.stop="startResize($event, component)"
-            />
-          </div>
+            </grid-item>
+          </grid-layout>
         </div>
       </div>
 
@@ -250,20 +252,20 @@
 
           <el-divider />
 
-          <el-form-item label="位置 X">
-            <el-input-number v-model="selectedComponent.x" :min="0" :step="10" @change="updateComponent" />
+          <el-form-item label="位置 X（格）">
+            <el-input-number v-model="selectedComponent.x" :min="0" :max="GRID_COLS - 1" :step="1" @change="updateComponent" />
           </el-form-item>
 
-          <el-form-item label="位置 Y">
-            <el-input-number v-model="selectedComponent.y" :min="0" :step="10" @change="updateComponent" />
+          <el-form-item label="位置 Y（格）">
+            <el-input-number v-model="selectedComponent.y" :min="0" :step="1" @change="updateComponent" />
           </el-form-item>
 
-          <el-form-item label="宽度">
-            <el-input-number v-model="selectedComponent.width" :min="100" :step="10" @change="updateComponent" />
+          <el-form-item label="宽度（格）">
+            <el-input-number v-model="selectedComponent.width" :min="2" :max="GRID_COLS" :step="1" @change="updateComponent" />
           </el-form-item>
 
-          <el-form-item label="高度">
-            <el-input-number v-model="selectedComponent.height" :min="100" :step="10" @change="updateComponent" />
+          <el-form-item label="高度（格）">
+            <el-input-number v-model="selectedComponent.height" :min="2" :step="1" @change="updateComponent" />
           </el-form-item>
         </el-form>
       </div>
@@ -331,9 +333,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, type ComponentPublicInstance } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { GridLayout, GridItem } from 'vue-grid-layout'
 import {
   ArrowLeft,
   Edit,
@@ -361,6 +364,12 @@ import { adminService } from '@/adapters'
 import type { DataSource } from '@/types'
 import { request } from '@/utils/http'
 import { ENTERPRISE_CHART_CATALOG, getChartFamily } from '@/components/Chart'
+
+const GRID_COLS = 12
+const GRID_ROW_HEIGHT = 80
+const GRID_MARGIN = [8, 8]
+const DEFAULT_COMPONENT_W = 4
+const DEFAULT_COMPONENT_H = 3
 
 use([CanvasRenderer, BarChart, LineChart, PieChartType, ScatterChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
@@ -437,11 +446,67 @@ const tempComponent = ref<Partial<DashboardComponent>>({})
 
 const canvasRef = ref<HTMLElement>()
 
+// vue-grid-layout 布局数据
+const gridLayout = ref<any[]>([])
+
+function toGridItem(c: DashboardComponent) {
+  return {
+    i: String(c.id),
+    x: c.x,
+    y: c.y,
+    w: c.width,
+    h: c.height,
+    title: c.title,
+    chartType: c.chartType,
+    chartOption: c.chartOption,
+    chartData: c.chartData,
+    zIndex: c.zIndex
+  }
+}
+
+function syncLayoutToComponents(newLayout: any[]) {
+  newLayout.forEach((item: any) => {
+    const comp = components.value.find(c => String(c.id) === item.i)
+    if (comp) {
+      comp.x = item.x
+      comp.y = item.y
+      comp.width = item.w
+      comp.height = item.h
+    }
+  })
+}
+
+function selectComponentById(id: number) {
+  const comp = components.value.find(c => c.id === id)
+  if (comp) selectComponent(comp)
+}
+
+function editComponentById(id: number) {
+  const comp = components.value.find(c => c.id === id)
+  if (comp) editComponent(comp)
+}
+
+function removeComponentById(id: number) {
+  const comp = components.value.find(c => c.id === id)
+  if (comp) removeComponent(comp)
+}
+
 let draggedChart: ChartType | null = null
-let isMoving = false
-let moveOffset = { x: 0, y: 0 }
-let isResizing = false
-let resizeStart = { x: 0, y: 0, width: 0, height: 0 }
+
+// 将旧版 px 坐标转换为 grid 坐标（向后兼容）
+function pxToGrid(component: DashboardComponent): DashboardComponent {
+  const canvasWidth = 1200 // 画布参考宽度
+  const colWidth = canvasWidth / GRID_COLS
+  // 若 width/height 已处于合理 grid 范围（<=20），视为 grid 单位
+  if (component.width <= 20 && component.height <= 20) return component
+  return {
+    ...component,
+    x: Math.min(GRID_COLS - 1, Math.max(0, Math.round(component.x / colWidth))),
+    y: Math.max(0, Math.round(component.y / GRID_ROW_HEIGHT)),
+    width: Math.min(GRID_COLS, Math.max(2, Math.round(component.width / colWidth))),
+    height: Math.max(2, Math.round(component.height / GRID_ROW_HEIGHT))
+  }
+}
 
 function normalizeTableNames(data: unknown): string[] {
   if (!Array.isArray(data)) return []
@@ -694,11 +759,14 @@ async function loadDashboard() {
 
   dashboardName.value = response.data.name || ''
   if (response.data.chartsConfig) {
-    components.value = JSON.parse(response.data.chartsConfig).map((item: DashboardComponent) => ({
-      aggregation: 'SUM',
-      filters: [],
-      ...item
-    }))
+    components.value = JSON.parse(response.data.chartsConfig).map((item: DashboardComponent) =>
+      pxToGrid({
+        aggregation: 'SUM',
+        filters: [],
+        ...item
+      })
+    )
+    gridLayout.value = components.value.map(toGridItem)
   }
 }
 
@@ -758,17 +826,21 @@ const onDrop = (event: DragEvent) => {
   if (!draggedChart || !canvasRef.value) return
 
   const rect = canvasRef.value.getBoundingClientRect()
-  const x = event.clientX - rect.left - 50
-  const y = event.clientY - rect.top - 30
+  const pxX = event.clientX - rect.left
+  const pxY = event.clientY - rect.top
+  const colWidth = rect.width / GRID_COLS
+
+  const gridX = Math.min(GRID_COLS - DEFAULT_COMPONENT_W, Math.max(0, Math.round(pxX / colWidth)))
+  const gridY = Math.max(0, Math.round(pxY / GRID_ROW_HEIGHT))
 
   const newComponent: DashboardComponent = {
     id: Date.now(),
     title: draggedChart.name,
     chartType: draggedChart.type,
-    x: Math.max(0, x),
-    y: Math.max(0, y),
-    width: 300,
-    height: 200,
+    x: gridX,
+    y: gridY,
+    width: DEFAULT_COMPONENT_W,
+    height: DEFAULT_COMPONENT_H,
     zIndex: components.value.length + 1,
     datasourceId: selectedDatasource.value,
     aggregation: 'SUM',
@@ -779,13 +851,14 @@ const onDrop = (event: DragEvent) => {
       chartType: draggedChart.type,
       x: 0,
       y: 0,
-      width: 300,
-      height: 200,
+      width: DEFAULT_COMPONENT_W,
+      height: DEFAULT_COMPONENT_H,
       zIndex: 0
     } as DashboardComponent)
   }
 
   components.value.push(newComponent)
+  gridLayout.value.push(toGridItem(newComponent))
   selectComponent(newComponent)
   draggedChart = null
 }
@@ -798,62 +871,18 @@ const selectComponent = (component: DashboardComponent) => {
   }
 }
 
-const startMove = (event: MouseEvent, component: DashboardComponent) => {
-  if (previewMode.value) return
-  isMoving = true
-  moveOffset.x = event.clientX - component.x
-  moveOffset.y = event.clientY - component.y
 
-  const onMouseMove = (e: MouseEvent) => {
-    if (!isMoving) return
-    component.x = Math.max(0, e.clientX - moveOffset.x)
-    component.y = Math.max(0, e.clientY - moveOffset.y)
-  }
-
-  const onMouseUp = () => {
-    isMoving = false
-    document.removeEventListener('mousemove', onMouseMove)
-    document.removeEventListener('mouseup', onMouseUp)
-  }
-
-  document.addEventListener('mousemove', onMouseMove)
-  document.addEventListener('mouseup', onMouseUp)
-}
-
-const startResize = (event: MouseEvent, component: DashboardComponent) => {
-  isResizing = true
-  resizeStart.x = event.clientX
-  resizeStart.y = event.clientY
-  resizeStart.width = component.width
-  resizeStart.height = component.height
-
-  const onMouseMove = (e: MouseEvent) => {
-    if (!isResizing) return
-    const dx = e.clientX - resizeStart.x
-    const dy = e.clientY - resizeStart.y
-    component.width = Math.max(100, resizeStart.width + dx)
-    component.height = Math.max(100, resizeStart.height + dy)
-  }
-
-  const onMouseUp = () => {
-    isResizing = false
-    document.removeEventListener('mousemove', onMouseMove)
-    document.removeEventListener('mouseup', onMouseUp)
-  }
-
-  document.addEventListener('mousemove', onMouseMove)
-  document.addEventListener('mouseup', onMouseUp)
-}
 
 const addComponent = () => {
+  const offset = components.value.length % 3
   const newComponent: DashboardComponent = {
     id: Date.now(),
     title: '新组件',
     chartType: 'bar',
-    x: 50 + components.value.length * 20,
-    y: 50 + components.value.length * 20,
-    width: 300,
-    height: 200,
+    x: offset * 2,
+    y: Math.floor(components.value.length / 3) * 3,
+    width: DEFAULT_COMPONENT_W,
+    height: DEFAULT_COMPONENT_H,
     zIndex: components.value.length + 1,
     datasourceId: selectedDatasource.value,
     aggregation: 'SUM',
@@ -864,12 +893,13 @@ const addComponent = () => {
       chartType: 'bar',
       x: 0,
       y: 0,
-      width: 300,
-      height: 200,
+      width: DEFAULT_COMPONENT_W,
+      height: DEFAULT_COMPONENT_H,
       zIndex: 0
     } as DashboardComponent)
   }
   components.value.push(newComponent)
+  gridLayout.value.push(toGridItem(newComponent))
   selectComponent(newComponent)
   configDialogVisible.value = true
 }
@@ -883,22 +913,42 @@ const removeComponent = (component: DashboardComponent) => {
   const index = components.value.findIndex(c => c.id === component.id)
   if (index > -1) {
     components.value.splice(index, 1)
-    if (selectedComponent.value?.id === component.id) {
-      selectedComponent.value = null
-    }
+  }
+  const gridIndex = gridLayout.value.findIndex((item: any) => item.i === String(component.id))
+  if (gridIndex > -1) {
+    gridLayout.value.splice(gridIndex, 1)
+  }
+  if (selectedComponent.value?.id === component.id) {
+    selectedComponent.value = null
   }
 }
 
 const clearCanvas = () => {
   components.value = []
+  gridLayout.value = []
   selectedComponent.value = null
 }
 
 const updateComponent = () => {
   if (!selectedComponent.value) return
-  const index = components.value.findIndex(c => c.id === selectedComponent.value!.id)
+  const comp = selectedComponent.value
+  const index = components.value.findIndex(c => c.id === comp.id)
   if (index > -1) {
-    components.value[index] = { ...selectedComponent.value }
+    components.value[index] = { ...comp }
+  }
+  const gridIndex = gridLayout.value.findIndex((item: any) => item.i === String(comp.id))
+  if (gridIndex > -1) {
+    gridLayout.value[gridIndex] = {
+      ...gridLayout.value[gridIndex],
+      x: comp.x,
+      y: comp.y,
+      w: comp.width,
+      h: comp.height,
+      title: comp.title,
+      chartType: comp.chartType,
+      chartOption: comp.chartOption,
+      chartData: comp.chartData
+    }
   }
 }
 
@@ -938,10 +988,6 @@ async function updateChartOption() {
   if (!selectedComponent.value) return
   await hydrateComponentData(selectedComponent.value)
   updateComponent()
-}
-
-const initChart = (el: Element | ComponentPublicInstance | null, component: DashboardComponent) => {
-  if (!(el instanceof HTMLElement) || !component.chartOption) return
 }
 
 async function saveDashboard() {
@@ -1150,7 +1196,6 @@ onUnmounted(() => {
 
       .canvas {
         flex: 1;
-        position: relative;
         overflow: auto;
         background: #fff;
         margin: 16px;
@@ -1160,7 +1205,6 @@ onUnmounted(() => {
       }
 
       .canvas-component {
-        position: absolute;
         border: 2px solid transparent;
         border-radius: 4px;
         background: #fff;
@@ -1231,17 +1275,6 @@ onUnmounted(() => {
               }
             }
           }
-        }
-
-        .resize-handle {
-          position: absolute;
-          right: 0;
-          bottom: 0;
-          width: 12px;
-          height: 12px;
-          cursor: se-resize;
-          background: linear-gradient(135deg, transparent 50%, #409eff 50%);
-          border-radius: 0 0 4px 0;
         }
       }
     }

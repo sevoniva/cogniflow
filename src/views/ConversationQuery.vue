@@ -26,6 +26,13 @@
           <el-icon><Setting /></el-icon>
           <span class="btn-text">AI 设置</span>
         </el-button>
+        <el-button link :type="streamEnabled ? 'success' : ''" @click="streamEnabled = !streamEnabled" title="流式输出">
+          <el-icon>
+            <Loading v-if="streamEnabled" />
+            <VideoPlay v-else />
+          </el-icon>
+          <span class="btn-text">{{ streamEnabled ? '流式中' : '流式' }}</span>
+        </el-button>
         <el-button link type="primary" @click="startNewConversation">
           <el-icon><Plus /></el-icon>
           <span class="btn-text">新对话</span>
@@ -751,6 +758,7 @@ import {
   Grid,
   Loading,
   Management,
+  VideoPlay,
   FullScreen,
   Plus,
   Promotion,
@@ -775,7 +783,7 @@ import {
   type RankedCandidateReasonFilter,
   visibleRankedCandidates
 } from '@/utils/diagnosis'
-import { request } from '@/utils/http'
+import { request, streamRequest } from '@/utils/http'
 
 interface CapabilityMetric {
   name: string
@@ -918,6 +926,7 @@ const route = useRoute()
 const messages = ref<ConversationMessage[]>([])
 const inputMessage = ref('')
 const loading = ref(false)
+const streamEnabled = ref(false)
 const focusMode = ref(false)
 const sidePanelVisible = ref(false)
 const currentConversationId = ref('')
@@ -1608,6 +1617,108 @@ async function sendMessage(message: string) {
   }
 }
 
+async function sendMessageStream(message: string) {
+  if (loading.value) return
+
+  loading.value = true
+  messages.value.push({
+    role: 'user',
+    content: message,
+    timestamp: Date.now()
+  })
+  scrollToBottom()
+
+  const assistantMsgId = Date.now()
+  messages.value.push({
+    role: 'assistant',
+    content: '',
+    timestamp: assistantMsgId
+  })
+
+  try {
+    let result: any = null
+    await streamRequest(
+      `${API_BASE}/message/stream`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          conversationId: currentConversationId.value || undefined,
+          message,
+          userId: 1
+        })
+      },
+      (chunk) => {
+        if (chunk.event === 'status') {
+          // 可在此更新状态指示器
+          const status = JSON.parse(chunk.data)
+          const assistantMsg = messages.value[messages.value.length - 1]
+          if (assistantMsg.role === 'assistant') {
+            assistantMsg.content = getStatusText(status.step)
+          }
+        } else if (chunk.event === 'result') {
+          const parsed = JSON.parse(chunk.data)
+          if (parsed.success && parsed.data) {
+            result = parsed.data
+          }
+        } else if (chunk.event === 'error') {
+          const parsed = JSON.parse(chunk.data)
+          throw new Error(parsed.error || '流式处理失败')
+        }
+      }
+    )
+
+    if (!result) {
+      throw new Error('未收到有效结果')
+    }
+
+    if (!currentConversationId.value && result.conversationId) {
+      currentConversationId.value = result.conversationId
+    }
+    upsertConversation(result.conversationId, message)
+
+    const assistantMsg = messages.value[messages.value.length - 1]
+    if (assistantMsg.role === 'assistant') {
+      assistantMsg.content = result.message
+      assistantMsg.sql = result.sql
+      assistantMsg.data = result.data || []
+      assistantMsg.chartType = result.chartType
+      assistantMsg.renderChartType = resolveRenderChartType(result.chartType, result.data || [])
+      assistantMsg.suggestions = result.suggestions || []
+      assistantMsg.source = result.source
+      assistantMsg.metric = result.metric
+      assistantMsg.candidateMetrics = result.candidateMetrics || []
+      assistantMsg.disambiguation = Boolean(result.disambiguation)
+      assistantMsg.aiStatus = result.aiStatus
+      assistantMsg.diagnosis = result.diagnosis
+      assistantMsg.dataViewMode = resolveDefaultDataViewMode(result.chartType, result.data || [])
+    }
+
+    await nextTick()
+    renderAssistantCharts()
+    scrollToBottom()
+  } catch (error: any) {
+    console.error('流式发送消息失败', error)
+    const assistantMsg = messages.value[messages.value.length - 1]
+    if (assistantMsg.role === 'assistant') {
+      assistantMsg.content = `发送失败：${error?.message || '网络异常'}`
+    }
+    ElMessage.error(`发送消息失败：${error?.message || '网络异常'}`)
+  } finally {
+    loading.value = false
+  }
+}
+
+function getStatusText(step: string): string {
+  const map: Record<string, string> = {
+    CREATING_CONVERSATION: '正在创建对话...',
+    ANALYZING_INTENT: '正在分析意图...',
+    GENERATING_SQL: '正在生成 SQL...',
+    GENERATING_INTERPRETATION: '正在生成解读...',
+    FINALIZING: '正在整理结果...'
+  }
+  return map[step] || '正在处理...'
+}
+
 function handleSend() {
   const message = inputMessage.value.trim()
   if (!message) {
@@ -1615,7 +1726,11 @@ function handleSend() {
     return
   }
   inputMessage.value = ''
-  sendMessage(message)
+  if (streamEnabled.value) {
+    sendMessageStream(message)
+  } else {
+    sendMessage(message)
+  }
 }
 
 function setChartRef(index: number, element: any) {

@@ -22,6 +22,8 @@ import com.chatbi.service.SmartRecommendationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.MediaType;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -288,6 +290,122 @@ public class ConversationController {
                 return Result.ok(buildHardFailSafeResponse(conversationId, userId, message, e, recoverError));
             }
         }
+    }
+
+    /**
+     * 发送消息（流式输出）
+     *
+     * 通过 SSE 返回处理进度和最终结果，前端可实现打字机效果。
+     */
+    @PostMapping(value = "/message/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamMessage(@RequestBody Map<String, Object> request) {
+        SseEmitter emitter = new SseEmitter(120_000L);
+
+        new Thread(() -> {
+            try {
+                String conversationId = (String) request.get("conversationId");
+                String message = (String) request.get("message");
+                Long userId = request.get("userId") != null ?
+                    Long.parseLong(request.get("userId").toString()) : 1L;
+
+                if (message == null || message.trim().isEmpty()) {
+                    emitter.send(SseEmitter.event().name("error").data("{\"error\":\"消息不能为空\"}"));
+                    emitter.complete();
+                    return;
+                }
+
+                // 1. 创建对话
+                emitter.send(SseEmitter.event().name("status").data("{\"step\":\"CREATING_CONVERSATION\"}"));
+                if (conversationId == null || conversationId.isEmpty()) {
+                    ConversationService.Conversation conversation = conversationService.createConversation(userId);
+                    conversationId = conversation.getConversationId();
+                }
+
+                // 2. 添加用户消息
+                emitter.send(SseEmitter.event().name("status").data("{\"step\":\"ANALYZING_INTENT\"}"));
+                conversationService.addUserMessage(conversationId, message);
+
+                // 3. 判断追问
+                boolean isFollowUp = conversationService.isFollowUpQuestion(conversationId, message);
+
+                // 4. 解析查询
+                emitter.send(SseEmitter.event().name("status").data("{\"step\":\"GENERATING_SQL\"}"));
+                QueryExecution execution = resolveQuery(conversationId, message, isFollowUp, userId);
+                enrichDiagnosisWithScenario(execution.diagnosis(), message, execution.candidateMetrics());
+
+                // 5. 生成智能解读
+                emitter.send(SseEmitter.event().name("status").data("{\"step\":\"GENERATING_INTERPRETATION\"}"));
+                List<String> suggestions = execution.suggestions().isEmpty()
+                    ? generateSuggestions(message, execution.data(), conversationId)
+                    : execution.suggestions();
+                String chartType = execution.chartType() != null ? execution.chartType() : recommendChartType(execution.data());
+                Map<String, Object> aiStatus = buildAiStatus();
+                InterpretationResult interpretationResult = execution.reply() != null
+                    ? new InterpretationResult(execution.reply(), execution.source())
+                    : buildInterpretation(message, execution.data(), isFollowUp, execution.metricName(), execution.source());
+                String interpretation = interpretationResult.reply();
+                String responseSource = interpretationResult.source();
+
+                // 6. 添加助手消息
+                emitter.send(SseEmitter.event().name("status").data("{\"step\":\"FINALIZING\"}"));
+                Map<String, Object> metadata = new HashMap<>();
+                metadata.put("dataCount", execution.data().size());
+                metadata.put("isFollowUp", isFollowUp);
+                metadata.put("metricName", execution.metricName());
+                metadata.put("querySource", responseSource);
+                metadata.put("chartType", chartType);
+                metadata.put("data", execution.data());
+                metadata.put("suggestions", suggestions);
+                metadata.put("candidateMetrics", execution.candidateMetrics());
+                metadata.put("disambiguation", execution.disambiguation());
+                metadata.put("aiStatus", aiStatus);
+                metadata.put("diagnosis", execution.diagnosis());
+                conversationService.addAssistantMessage(conversationId, interpretation, execution.sql(), metadata);
+
+                // 7. 更新对话上下文
+                conversationService.updateContext(conversationId, "lastQuery", message);
+                conversationService.updateContext(conversationId, "lastSql", execution.sql());
+                conversationService.updateContext(conversationId, "lastDataCount", execution.data().size());
+                if (!"guided-discovery".equals(execution.source()) && !"overview".equals(execution.source())) {
+                    conversationService.updateContext(conversationId, "lastMetric", execution.metricName());
+                }
+
+                // 8. 记录查询
+                com.chatbi.entity.DataSource dataSource = getDefaultDataSource();
+                recommendationService.recordQuery(userId, dataSource != null ? dataSource.getId() : 1L, message);
+
+                // 9. 发送最终结果
+                Map<String, Object> response = new HashMap<>();
+                response.put("conversationId", conversationId);
+                response.put("message", interpretation);
+                response.put("sql", execution.sql());
+                response.put("data", execution.data());
+                response.put("dataCount", execution.data().size());
+                response.put("isFollowUp", isFollowUp);
+                response.put("metric", execution.metricName());
+                response.put("source", responseSource);
+                response.put("suggestions", suggestions);
+                response.put("candidateMetrics", execution.candidateMetrics());
+                response.put("disambiguation", execution.disambiguation());
+                response.put("chartType", chartType);
+                response.put("aiStatus", aiStatus);
+                response.put("diagnosis", execution.diagnosis());
+
+                emitter.send(SseEmitter.event().name("result").data(Result.ok(response)));
+                emitter.complete();
+
+            } catch (Exception e) {
+                log.error("流式处理消息失败", e);
+                try {
+                    emitter.send(SseEmitter.event().name("error").data(Result.error(e.getMessage())));
+                } catch (Exception ex) {
+                    log.error("发送流式错误事件失败", ex);
+                }
+                emitter.completeWithError(e);
+            }
+        }).start();
+
+        return emitter;
     }
 
     /**

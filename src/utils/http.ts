@@ -192,3 +192,79 @@ export function slugifyCode(value: string, fallbackPrefix: string): string {
 
   return `${fallbackPrefix}_${Date.now()}`
 }
+
+export interface StreamChunk {
+  event: string
+  data: string
+}
+
+/**
+ * SSE 流式请求
+ *
+ * 使用 fetch + ReadableStream 解析 SSE 事件流。
+ * 支持 POST JSON body（比 EventSource 更灵活）。
+ */
+export async function streamRequest(
+  path: string,
+  options: RequestInit & { body: string },
+  onChunk: (chunk: StreamChunk) => void
+): Promise<void> {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  const url = path.startsWith('http://') || path.startsWith('https://')
+    ? path
+    : (normalizedPath === API_BASE || normalizedPath.startsWith(`${API_BASE}/`))
+      ? normalizedPath
+      : `${API_BASE}${normalizedPath}`
+
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...((options.headers as Record<string, string>) || {}),
+      'Accept': 'text/event-stream',
+      'Content-Type': 'application/json'
+    },
+    signal: options.signal
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+  }
+
+  const reader = response.body?.getReader()
+  if (!reader) {
+    throw new Error('Response body is not readable')
+  }
+
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+
+    // SSE 格式解析：event: xxx\ndata: yyy\n\n
+    let eventName = ''
+    const lines = buffer.split('\n')
+    buffer = ''
+
+    for (const line of lines) {
+      if (line.startsWith('event:')) {
+        eventName = line.slice(6).trim()
+      } else if (line.startsWith('data:')) {
+        const data = line.slice(5).trim()
+        if (eventName) {
+          onChunk({ event: eventName, data })
+          eventName = ''
+        }
+      } else if (line.trim() === '') {
+        // 空行分隔事件
+        eventName = ''
+      } else {
+        // 不完整的行，放回 buffer
+        buffer = line
+      }
+    }
+  }
+}

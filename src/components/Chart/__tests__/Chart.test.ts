@@ -53,7 +53,7 @@ describe('Chart Components', () => {
       expect(wrapper.find('.chatbi-chart').exists()).toBe(true);
     });
 
-    it('应该接收正确的 props', () => {
+    it('应该透传 props 到 ChatChart', () => {
       const wrapper = mount(ChatBarChart, {
         props: {
           title: '测试标题',
@@ -62,9 +62,10 @@ describe('Chart Components', () => {
         }
       });
 
-      expect((wrapper.props() as Record<string, unknown>).title).toBe('测试标题');
-      expect((wrapper.props() as Record<string, unknown>).width).toBe('500px');
-      expect((wrapper.props() as Record<string, unknown>).height).toBe('300px');
+      const chartStub = wrapper.findComponent({ name: 'ChatChartStub' });
+      expect(chartStub.props('title')).toBe('测试标题');
+      expect(chartStub.props('width')).toBe('500px');
+      expect(chartStub.props('height')).toBe('300px');
     });
 
     it('应该触发 chartReady 事件', async () => {
@@ -78,7 +79,8 @@ describe('Chart Components', () => {
       // 等待组件挂载和图表初始化
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      expect(wrapper.emitted('chartReady')).toBeDefined();
+      const chartStub = wrapper.findComponent({ name: 'ChatChartStub' });
+      expect(chartStub.emitted('chartReady')).toBeDefined();
     });
   });
 
@@ -126,7 +128,8 @@ describe('Chart Components', () => {
         }
       });
 
-      expect((wrapper.props() as Record<string, unknown>).showDataZoom).toBe(true);
+      const chartStub = wrapper.findComponent({ name: 'ChatChartStub' });
+      expect(chartStub.props('showDataZoom')).toBe(true);
     });
   });
 
@@ -159,7 +162,8 @@ describe('Chart Components', () => {
         }
       });
 
-      expect((wrapper.props() as Record<string, unknown>).height).toBe('500px');
+      const chartStub = wrapper.findComponent({ name: 'ChatChartStub' });
+      expect(chartStub.props('height')).toBe('500px');
     });
 
     it('应该支持隐藏图例', () => {
@@ -170,7 +174,8 @@ describe('Chart Components', () => {
         }
       });
 
-      expect((wrapper.props() as Record<string, unknown>).showLegend).toBe(false);
+      const chartStub = wrapper.findComponent({ name: 'ChatChartStub' });
+      expect(chartStub.props('showLegend')).toBe(false);
     });
   });
 });

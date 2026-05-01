@@ -336,3 +336,21 @@ CREATE TABLE IF NOT EXISTS prompt_version (
     deleted_at TIMESTAMP NULL,
     UNIQUE KEY uk_prompt_version_tag (version_tag)
 );
+
+CREATE TABLE IF NOT EXISTS feedback (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    message_id VARCHAR(64),
+    conversation_id VARCHAR(64),
+    user_id BIGINT,
+    question LONGTEXT,
+    generated_sql LONGTEXT,
+    rating INT DEFAULT 0,
+    correct_sql LONGTEXT,
+    comment LONGTEXT,
+    exported BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_feedback_message_id (message_id),
+    INDEX idx_feedback_conversation_id (conversation_id),
+    INDEX idx_feedback_exported (exported)
+);

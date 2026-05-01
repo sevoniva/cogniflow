@@ -1,6 +1,8 @@
 package com.chatbi.service;
 
 import com.chatbi.config.AiConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
@@ -26,6 +28,7 @@ public class AiModelService {
     private final AiConfig aiConfig;
     private final RestTemplate restTemplate;
     private final AiObservabilityService aiObservabilityService;
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
 
     /**
      * 调用AI模型生成SQL
@@ -52,6 +55,19 @@ public class AiModelService {
             String providerName = providerSequence.get(index);
             boolean hasNextProvider = index < providerSequence.size() - 1;
             long providerStart = System.currentTimeMillis();
+
+            // CircuitBreaker 状态检查（Month 2 Week 2）
+            CircuitBreaker cb = getCircuitBreaker(providerName);
+            if (cb.getState() == CircuitBreaker.State.OPEN) {
+                log.warn("Provider CircuitBreaker OPEN，跳过 - provider: {}", providerName);
+                if (!hasNextProvider) {
+                    throw new RuntimeException("所有AI模型提供商熔断器均已开启，请稍后重试");
+                }
+                String nextProvider = providerSequence.get(index + 1);
+                aiObservabilityService.recordProviderSwitch(providerName, nextProvider, "CIRCUIT_OPEN", "CircuitBreaker OPEN");
+                continue;
+            }
+
             AiConfig.ProviderConfig config;
             try {
                 config = resolveProvider(providerName);
@@ -71,7 +87,7 @@ public class AiModelService {
             }
 
             try {
-                return invokeWithRetry(prompt, providerName, config, promptChars);
+                return invokeWithRetry(prompt, providerName, config, promptChars, cb);
             } catch (RuntimeException ex) {
                 lastException = ex;
                 String category = classifyFailure(ex);
@@ -88,27 +104,48 @@ public class AiModelService {
         throw lastException != null ? lastException : new RuntimeException("AI模型调用失败");
     }
 
-    private String invokeWithRetry(String prompt, String providerName, AiConfig.ProviderConfig config, int promptChars) {
+    /**
+     * 获取或创建 Provider 对应的 CircuitBreaker
+     */
+    private CircuitBreaker getCircuitBreaker(String providerName) {
+        String cbName = providerName.toLowerCase();
+        try {
+            return circuitBreakerRegistry.circuitBreaker(cbName);
+        } catch (Exception e) {
+            // 如果配置中未定义该 provider 的 circuit breaker，fallback 到动态创建
+            log.debug("Provider CircuitBreaker 未在配置中定义，动态创建 - name: {}", cbName);
+            return circuitBreakerRegistry.circuitBreaker(cbName + "-dynamic");
+        }
+    }
+
+    private String invokeWithRetry(String prompt, String providerName, AiConfig.ProviderConfig config, int promptChars, CircuitBreaker circuitBreaker) {
         RuntimeException lastException = null;
         int maxAttempts = Math.max(aiConfig.getMaxRetries(), 1);
         long start = System.currentTimeMillis();
 
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
-                String response = switch (providerName.toLowerCase()) {
-                    case "openai" -> callOpenAI(prompt, config);
-                    case "kimi" -> callKimi(prompt, config);
-                    case "bailian" -> callBailian(prompt, config);
-                    case "minimax" -> callMiniMax(prompt, config);
-                    case "qwen" -> callQwen(prompt, config);
-                    case "generic" -> callGenericApi(prompt, config);
-                    default -> throw new RuntimeException("不支持的AI模型提供商: " + providerName);
-                };
+                // 使用 CircuitBreaker 包裹 provider 调用
+                String response = circuitBreaker.executeSupplier(() -> {
+                    return switch (providerName.toLowerCase()) {
+                        case "openai" -> callOpenAI(prompt, config);
+                        case "kimi" -> callKimi(prompt, config);
+                        case "bailian" -> callBailian(prompt, config);
+                        case "minimax" -> callMiniMax(prompt, config);
+                        case "qwen" -> callQwen(prompt, config);
+                        case "qianwen" -> callQwen(prompt, config);
+                        case "generic" -> callGenericApi(prompt, config);
+                        default -> throw new RuntimeException("不支持的AI模型提供商: " + providerName);
+                    };
+                });
                 long durationMs = System.currentTimeMillis() - start;
                 aiObservabilityService.recordSuccess(providerName, "generateText", durationMs, attempt, promptChars);
                 log.info("AI调用成功 - provider: {}, attempts: {}, durationMs: {}, promptChars: {}",
                     providerName, attempt, durationMs, promptChars);
                 return response;
+            } catch (io.github.resilience4j.circuitbreaker.CallNotPermittedException ex) {
+                // CircuitBreaker OPEN，直接抛出让上层切换 provider
+                throw new RuntimeException("Provider CircuitBreaker OPEN: " + providerName, ex);
             } catch (RuntimeException ex) {
                 lastException = ex;
                 if (!shouldRetry(ex) || attempt == maxAttempts) {

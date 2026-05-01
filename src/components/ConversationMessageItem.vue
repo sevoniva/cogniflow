@@ -293,6 +293,51 @@
           </div>
         </div>
 
+        <!-- NL2SQL 反馈（Month 2 Week 2） -->
+        <div v-if="msg.role === 'assistant' && msg.sql" class="feedback-bar">
+          <div class="feedback-bar__actions">
+            <el-button
+              size="small"
+              text
+              :type="feedbackState.rating === 1 ? 'success' : undefined"
+              @click="handleFeedback(1)"
+            >
+              <el-icon><CircleCheck /></el-icon>
+              准确
+            </el-button>
+            <el-button
+              size="small"
+              text
+              :type="feedbackState.rating === -1 ? 'danger' : undefined"
+              @click="handleFeedback(-1)"
+            >
+              <el-icon><CircleClose /></el-icon>
+              不准确
+            </el-button>
+          </div>
+          <div v-if="feedbackState.showForm" class="feedback-form">
+            <el-input
+              v-model="feedbackState.correctSql"
+              type="textarea"
+              :rows="2"
+              placeholder="请填写您认为正确的 SQL（可选）"
+              size="small"
+            />
+            <el-input
+              v-model="feedbackState.comment"
+              type="textarea"
+              :rows="1"
+              placeholder="补充说明（可选）"
+              size="small"
+              style="margin-top: 6px;"
+            />
+            <div class="feedback-form__actions">
+              <el-button size="small" @click="feedbackState.showForm = false">取消</el-button>
+              <el-button size="small" type="primary" @click="submitFeedback">提交</el-button>
+            </div>
+          </div>
+        </div>
+
         <div v-if="msg.suggestions?.length" class="suggestion-list">
           <span class="suggestion-list__label">下一步建议</span>
           <el-tag
@@ -332,7 +377,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { DocumentCopy, FullScreen, Service, User } from '@element-plus/icons-vue'
+import { CircleCheck, CircleClose, DocumentCopy, FullScreen, Service, User } from '@element-plus/icons-vue'
 import { normalizeEnterpriseChartType } from '@/components/Chart/chartCatalog'
 import {
   buildRankedCandidateLabel,
@@ -464,6 +509,37 @@ const emit = defineEmits<{
 
 const expanded = ref(false)
 const reasonFilter = ref<RankedCandidateReasonFilter>('all')
+
+const feedbackState = ref({
+  rating: 0 as number,
+  showForm: false,
+  correctSql: '',
+  comment: ''
+})
+
+function handleFeedback(rating: number) {
+  feedbackState.value.rating = rating
+  feedbackState.value.showForm = true
+  if (rating === 1) {
+    // 点赞直接提交，无需表单
+    submitFeedback()
+  }
+}
+
+function submitFeedback() {
+  emit('feedback', {
+    messageId: props.msg.timestamp?.toString() || '',
+    conversationId: '',
+    question: '',
+    generatedSql: props.msg.sql || '',
+    rating: feedbackState.value.rating,
+    correctSql: feedbackState.value.correctSql,
+    comment: feedbackState.value.comment
+  })
+  feedbackState.value.showForm = false
+  feedbackState.value.correctSql = ''
+  feedbackState.value.comment = ''
+}
 
 const DEFAULT_CHART_TYPE_OPTIONS: ChartTypeOption[] = [
   { type: 'table', label: '明细表' },
@@ -1027,5 +1103,28 @@ function formatTime(timestamp: number) {
   .data-view-mode {
     width: 100%;
   }
+}
+
+.feedback-bar {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(129, 157, 219, 0.14);
+}
+
+.feedback-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.feedback-form {
+  margin-top: 8px;
+}
+
+.feedback-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
 }
 </style>

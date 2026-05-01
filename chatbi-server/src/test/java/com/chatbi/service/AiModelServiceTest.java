@@ -1,6 +1,8 @@
 package com.chatbi.service;
 
 import com.chatbi.config.AiConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +38,13 @@ class AiModelServiceTest {
     @Mock
     private AiObservabilityService aiObservabilityService;
 
+    private CircuitBreakerRegistry circuitBreakerRegistry;
+
+    @BeforeEach
+    void setUp() {
+        circuitBreakerRegistry = CircuitBreakerRegistry.ofDefaults();
+    }
+
     @Test
     @DisplayName("主提供商限流时应自动切换到备提供商")
     void shouldSwitchToBackupProviderOnRateLimit() {
@@ -44,7 +53,7 @@ class AiModelServiceTest {
             provider("Kimi", "https://primary.test", "k-primary", true, "moonshot-v1-8k"),
             provider("OpenAI", "https://backup.test", "k-backup", true, "gpt-4o-mini")
         );
-        AiModelService service = new AiModelService(aiConfig, restTemplate, aiObservabilityService);
+        AiModelService service = new AiModelService(aiConfig, restTemplate, aiObservabilityService, circuitBreakerRegistry);
 
         when(restTemplate.postForEntity(eq("https://primary.test/chat/completions"), any(HttpEntity.class), eq(Map.class)))
             .thenThrow(new RuntimeException("429 rate limit"));
@@ -86,7 +95,7 @@ class AiModelServiceTest {
             provider("Kimi", "https://backup-kimi.test", "k-kimi", true, "moonshot-v1-8k"),
             provider("OpenAI", "https://primary-openai.test", "k-openai", true, "gpt-4o-mini")
         );
-        AiModelService service = new AiModelService(aiConfig, restTemplate, aiObservabilityService);
+        AiModelService service = new AiModelService(aiConfig, restTemplate, aiObservabilityService, circuitBreakerRegistry);
 
         when(restTemplate.postForEntity(eq("https://primary-openai.test/chat/completions"), any(HttpEntity.class), eq(Map.class)))
             .thenThrow(new RuntimeException("401 unauthorized"));
@@ -120,7 +129,7 @@ class AiModelServiceTest {
             provider("Kimi", "https://primary.test", "", true, "moonshot-v1-8k"),
             provider("OpenAI", "https://backup.test", "k-backup", true, "gpt-4o-mini")
         );
-        AiModelService service = new AiModelService(aiConfig, restTemplate, aiObservabilityService);
+        AiModelService service = new AiModelService(aiConfig, restTemplate, aiObservabilityService, circuitBreakerRegistry);
 
         when(restTemplate.postForEntity(eq("https://backup.test/chat/completions"), any(HttpEntity.class), eq(Map.class)))
             .thenReturn(ResponseEntity.ok(openAiResponse("backup-from-config")));

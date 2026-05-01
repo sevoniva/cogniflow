@@ -6,6 +6,7 @@ import com.chatbi.entity.AuditLog;
 import com.chatbi.repository.AuditLogMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -107,6 +108,18 @@ public class AuditLogService {
     @Transactional(rollbackFor = Exception.class)
     public void save(AuditLog auditLog) {
         auditLogMapper.insert(auditLog);
+    }
+
+    /**
+     * 异步保存审计日志（使用 auditLogExecutor 线程池）
+     */
+    @Async(com.chatbi.config.AsyncConfig.AUDIT_LOG_EXECUTOR)
+    public void saveAsync(AuditLog auditLog) {
+        try {
+            auditLogMapper.insert(auditLog);
+        } catch (Exception e) {
+            log.error("异步保存审计日志失败：{}", e.getMessage(), e);
+        }
     }
 
     /**

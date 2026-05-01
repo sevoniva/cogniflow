@@ -6,6 +6,11 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.output.Response;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,6 +29,7 @@ public class ChatbiLanguageModel implements ChatLanguageModel {
 
     private final AiModelService aiModelService;
     private final String defaultProvider;
+    private final MeterRegistry meterRegistry;
 
     @Override
     public Response<AiMessage> generate(List<ChatMessage> messages) {
@@ -57,21 +63,101 @@ public class ChatbiLanguageModel implements ChatLanguageModel {
 
         log.debug("LangChain4j generate - prompt length: {}, provider: {}", finalPrompt.length(), defaultProvider);
 
-        String response = aiModelService.generateText(finalPrompt, defaultProvider);
-        return Response.from(AiMessage.from(response));
+        Timer.Sample sample = Timer.start(meterRegistry);
+        try {
+            String response = aiModelService.generateText(finalPrompt, defaultProvider);
+            sample.stop(Timer.builder("ai.model.duration")
+                    .tag("provider", defaultProvider)
+                    .tag("status", "success")
+                    .register(meterRegistry));
+            meterRegistry.counter("ai.model.calls",
+                    "provider", defaultProvider, "status", "success").increment();
+            return Response.from(AiMessage.from(response));
+        } catch (Exception e) {
+            sample.stop(Timer.builder("ai.model.duration")
+                    .tag("provider", defaultProvider)
+                    .tag("status", "error")
+                    .tag("error", e.getClass().getSimpleName())
+                    .register(meterRegistry));
+            meterRegistry.counter("ai.model.calls",
+                    "provider", defaultProvider, "status", "error").increment();
+            throw e;
+        }
     }
 
     /**
      * 生成文本（便捷方法）
+     *
+     * 带熔断和重试保护：连续失败自动开启熔断，fallback 到规则引擎。
      */
+    @CircuitBreaker(name = "aiGeneration", fallbackMethod = "generateFallback")
+    @Retry(name = "aiGeneration")
     public String generate(String prompt) {
-        return aiModelService.generateText(prompt, defaultProvider);
+        Timer.Sample sample = Timer.start(meterRegistry);
+        try {
+            String result = aiModelService.generateText(prompt, defaultProvider);
+            sample.stop(Timer.builder("ai.model.duration")
+                    .tag("provider", defaultProvider)
+                    .tag("status", "success")
+                    .register(meterRegistry));
+            meterRegistry.counter("ai.model.calls",
+                    "provider", defaultProvider, "status", "success").increment();
+            return result;
+        } catch (Exception e) {
+            sample.stop(Timer.builder("ai.model.duration")
+                    .tag("provider", defaultProvider)
+                    .tag("status", "error")
+                    .tag("error", e.getClass().getSimpleName())
+                    .register(meterRegistry));
+            meterRegistry.counter("ai.model.calls",
+                    "provider", defaultProvider, "status", "error").increment();
+            throw e;
+        }
     }
 
     /**
      * 生成文本（指定 provider）
      */
+    @CircuitBreaker(name = "aiGeneration", fallbackMethod = "generateFallback")
+    @Retry(name = "aiGeneration")
     public String generate(String prompt, String provider) {
-        return aiModelService.generateText(prompt, provider);
+        String effectiveProvider = provider != null ? provider : defaultProvider;
+        Timer.Sample sample = Timer.start(meterRegistry);
+        try {
+            String result = aiModelService.generateText(prompt, provider);
+            sample.stop(Timer.builder("ai.model.duration")
+                    .tag("provider", effectiveProvider)
+                    .tag("status", "success")
+                    .register(meterRegistry));
+            meterRegistry.counter("ai.model.calls",
+                    "provider", effectiveProvider, "status", "success").increment();
+            return result;
+        } catch (Exception e) {
+            sample.stop(Timer.builder("ai.model.duration")
+                    .tag("provider", effectiveProvider)
+                    .tag("status", "error")
+                    .tag("error", e.getClass().getSimpleName())
+                    .register(meterRegistry));
+            meterRegistry.counter("ai.model.calls",
+                    "provider", effectiveProvider, "status", "error").increment();
+            throw e;
+        }
+    }
+
+    /**
+     * 熔断/降级 fallback：返回语义引擎提示，引导用户缩小问题范围
+     */
+    private String generateFallback(String prompt, Exception ex) {
+        log.warn("AI 调用熔断/降级 - provider: {}, 原因: {}", defaultProvider, ex.getMessage());
+        return "系统当前繁忙，已切换至语义引擎模式。\n"
+            + "请尝试用更具体的业务术语描述您的问题，例如：\n"
+            + "- 本月华东区销售额总和\n"
+            + "- 按产品类别统计订单数量\n"
+            + "- 最近7天新增客户数";
+    }
+
+    private String generateFallback(String prompt, String provider, Exception ex) {
+        log.warn("AI 调用熔断/降级 - provider: {}, 原因: {}", provider, ex.getMessage());
+        return generateFallback(prompt, ex);
     }
 }

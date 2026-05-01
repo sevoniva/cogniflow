@@ -6,6 +6,9 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +47,7 @@ public class QueryExecutionService {
     private final QueryCacheService queryCacheService;
     private final QueryGovernanceService queryGovernanceService;
     private final DataMaskingService dataMaskingService;
+    private final MeterRegistry meterRegistry;
 
     @Value("${app.query-governance.max-rows:500}")
     private int maxRows;
@@ -93,12 +97,22 @@ public class QueryExecutionService {
      */
     public List<Map<String, Object>> execute(String sql) {
         QueryGovernanceService.GovernedQuery governedQuery = queryGovernanceService.govern(null, sql);
+        Timer.Sample sample = Timer.start(meterRegistry);
         try {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(defaultDataSource);
             tuneJdbcTemplate(jdbcTemplate);
             List<Map<String, Object>> result = jdbcTemplate.queryForList(governedQuery.governedSql());
+            sample.stop(Timer.builder("sql.query.duration")
+                    .tag("datasource", "default")
+                    .tag("status", "success")
+                    .register(meterRegistry));
             return dataMaskingService.maskRows(null, governedQuery, result);
         } catch (Exception e) {
+            sample.stop(Timer.builder("sql.query.duration")
+                    .tag("datasource", "default")
+                    .tag("status", "error")
+                    .tag("error", e.getClass().getSimpleName())
+                    .register(meterRegistry));
             log.error("SQL 执行失败：{}", governedQuery.governedSql(), e);
             throw new RuntimeException("SQL 执行失败：" + e.getMessage(), e);
         }
@@ -107,6 +121,8 @@ public class QueryExecutionService {
     /**
      * 执行 SQL 查询（指定数据源）
      */
+    @Observed(name = "sql.query", contextualName = "execute-sql-query",
+              lowCardinalityKeyValues = {"type", "datasource"})
     public List<Map<String, Object>> executeQuery(DataSource dataSource, String sql) {
         return executeQuery(dataSource, sql, null);
     }
@@ -119,11 +135,14 @@ public class QueryExecutionService {
         if (queryCacheService.shouldCache(effectiveSql)) {
             List<Map<String, Object>> cachedResult = queryCacheService.getCachedResult(effectiveSql, dataSource.getId(), cacheScopeKey);
             if (cachedResult != null) {
+                meterRegistry.counter("sql.query.cache.hit",
+                        "datasource", dataSource.getName()).increment();
                 return cachedResult;
             }
         }
 
         HikariDataSource hikariDataSource = null;
+        Timer.Sample sample = Timer.start(meterRegistry);
         try {
             hikariDataSource = getOrCreateDataSource(dataSource);
             JdbcTemplate jdbcTemplate = new JdbcTemplate(hikariDataSource);
@@ -134,6 +153,13 @@ public class QueryExecutionService {
             List<Map<String, Object>> maskedResult = dataMaskingService.maskRows(userId, governedQuery, result);
             log.info("查询成功 - 返回 {} 条记录", maskedResult.size());
 
+            sample.stop(Timer.builder("sql.query.duration")
+                    .tag("datasource", dataSource.getName())
+                    .tag("status", "success")
+                    .register(meterRegistry));
+            meterRegistry.counter("sql.query.rows",
+                    "datasource", dataSource.getName()).increment(maskedResult.size());
+
             if (queryCacheService.shouldCache(effectiveSql)) {
                 long ttl = queryCacheService.decideCacheTtl(effectiveSql);
                 queryCacheService.cacheResult(effectiveSql, dataSource.getId(), cacheScopeKey, maskedResult, ttl);
@@ -141,6 +167,11 @@ public class QueryExecutionService {
 
             return maskedResult;
         } catch (Exception e) {
+            sample.stop(Timer.builder("sql.query.duration")
+                    .tag("datasource", dataSource.getName())
+                    .tag("status", "error")
+                    .tag("error", e.getClass().getSimpleName())
+                    .register(meterRegistry));
             log.error("SQL 执行失败 - 数据源: {}, userId: {}, SQL: {}", dataSource.getName(), userId, effectiveSql, e);
             throw new RuntimeException("SQL 执行失败：" + e.getMessage(), e);
         }
@@ -149,6 +180,7 @@ public class QueryExecutionService {
     /**
      * 提取数据库表结构信息
      */
+    @Observed(name = "schema.extract", contextualName = "extract-table-schemas")
     public List<AiQueryService.TableSchema> extractTableSchemas(DataSource dataSource) {
         try {
             HikariDataSource hikariDataSource = getOrCreateDataSource(dataSource);
@@ -348,6 +380,13 @@ public class QueryExecutionService {
      */
     public com.github.benmanes.caffeine.cache.stats.CacheStats getPoolStats() {
         return dataSourceCache.stats();
+    }
+
+    /**
+     * 获取连接池缓存当前条目数
+     */
+    public long getDataSourceCacheSize() {
+        return dataSourceCache.estimatedSize();
     }
 
     private List<AiQueryService.TableSchema.Column> readColumns(

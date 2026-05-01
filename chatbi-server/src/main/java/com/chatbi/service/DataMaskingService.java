@@ -5,6 +5,7 @@ import com.chatbi.entity.DataMaskingRule;
 import com.chatbi.repository.DataMaskingRuleMapper;
 import com.chatbi.repository.SysUserMapper;
 import com.chatbi.utils.EncryptionUtils;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +30,7 @@ public class DataMaskingService {
 
     private final DataMaskingRuleMapper dataMaskingRuleMapper;
     private final SysUserMapper sysUserMapper;
+    private final MeterRegistry meterRegistry;
 
     @Value("${app.masking.encrypt-key:chatbi-masking-key-2026}")
     private String maskingEncryptKey;
@@ -160,10 +162,15 @@ public class DataMaskingService {
 
         DataMaskingRule rule = getRule(userId, tableName, fieldName);
         if (rule == null) {
+            meterRegistry.counter("data.masking.operations",
+                    "table", tableName, "field", fieldName, "type", "none").increment();
             return value;
         }
 
-        return applyMask(rule.getMaskType(), rule.getMaskPattern(), value);
+        String masked = applyMask(rule.getMaskType(), rule.getMaskPattern(), value);
+        meterRegistry.counter("data.masking.operations",
+                "table", tableName, "field", fieldName, "type", rule.getMaskType()).increment();
+        return masked;
     }
 
     private boolean appliesToUser(DataMaskingRule rule, Long userId, List<Long> roleIds) {

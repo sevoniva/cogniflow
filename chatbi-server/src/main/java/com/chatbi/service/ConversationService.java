@@ -1,6 +1,7 @@
 package com.chatbi.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -224,6 +225,7 @@ public class ConversationService {
     /**
      * 获取对话历史（用于LLM上下文）
      */
+    @Observed(name = "conversation.history", contextualName = "get-recent-messages")
     public List<Message> getRecentMessages(String conversationId, int limit) {
         Conversation conversation = getConversation(conversationId);
         if (conversation == null) {

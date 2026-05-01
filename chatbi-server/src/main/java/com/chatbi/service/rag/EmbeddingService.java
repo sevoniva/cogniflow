@@ -90,10 +90,24 @@ public class EmbeddingService {
     }
 
     /**
+     * 删除指定 key 的文档
+     */
+    public void remove(String key) {
+        documentStore.remove(key);
+    }
+
+    /**
      * 获取文档数量
      */
     public int size() {
         return documentStore.size();
+    }
+
+    /**
+     * 获取所有文档 key
+     */
+    public Set<String> keys() {
+        return new HashSet<>(documentStore.keySet());
     }
 
     /**

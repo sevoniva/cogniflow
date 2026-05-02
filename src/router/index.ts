@@ -25,7 +25,6 @@ const DataMasking = () => import('@/views/chatbi/data-masking/index.vue')
 const AlertRule = () => import('@/views/chatbi/alert-rule/index.vue')
 const AdvancedCharts = () => import('@/views/chatbi/advanced-charts/index.vue')
 const ChartMarket = () => import('@/views/chatbi/advanced-charts/index.vue')
-const GeoMap = () => import('@/views/chatbi/geo-map/index.vue')
 const EmbedDashboard = () => import('@/views/chatbi/embed/index.vue')
 const AlertDashboard = () => import('@/views/chatbi/alert-dashboard/index.vue')
 const AgileDashboard = () => import('@/views/AgileDashboard.vue')
@@ -98,12 +97,6 @@ const router = createRouter({
       name: 'ChartMarket',
       component: ChartMarket,
       meta: { title: '图表应用市场' }
-    },
-    {
-      path: '/chatbi/geo-map',
-      name: 'GeoMap',
-      component: GeoMap,
-      meta: { title: '地理地图' }
     },
     {
       path: '/embed/:token',

@@ -285,13 +285,11 @@ const handleDelete = async (rule: DataPermissionRule) => {
 
 const handleDialogClose = () => {
   formRef.value?.resetFields()
-  Object.keys(formData).forEach(key => {
-    delete (formData as any)[key]
+  Object.assign(formData, {
+    ruleName: '', tableName: '', fieldName: '',
+    operator: '=', value: '', valueType: 'CONSTANT',
+    priority: 0, status: 1
   })
-  formData.operator = '='
-  formData.valueType = 'CONSTANT'
-  formData.priority = 0
-  formData.status = 1
 }
 
 const handleSubmit = async () => {

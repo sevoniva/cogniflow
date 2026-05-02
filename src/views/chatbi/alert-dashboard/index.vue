@@ -14,7 +14,7 @@
     <el-row :gutter="20" class="overview-cards">
       <el-col :span="6">
         <el-card class="stat-card">
-          <div class="stat-icon" style="background: #ecf5ff; color: #409eff">
+          <div class="stat-icon stat-icon--primary">
             <el-icon><Bell /></el-icon>
           </div>
           <div class="stat-info">
@@ -25,7 +25,7 @@
       </el-col>
       <el-col :span="6">
         <el-card class="stat-card">
-          <div class="stat-icon" style="background: #fef0f0; color: #f56c6c">
+          <div class="stat-icon stat-icon--danger">
             <el-icon><Warning /></el-icon>
           </div>
           <div class="stat-info">
@@ -36,7 +36,7 @@
       </el-col>
       <el-col :span="6">
         <el-card class="stat-card">
-          <div class="stat-icon" style="background: #fdf6ec; color: #e6a23c">
+          <div class="stat-icon stat-icon--warning">
             <el-icon><DataAnalysis /></el-icon>
           </div>
           <div class="stat-info">
@@ -47,7 +47,7 @@
       </el-col>
       <el-col :span="6">
         <el-card class="stat-card">
-          <div class="stat-icon" style="background: #f0f9eb; color: #67c23a">
+          <div class="stat-icon stat-icon--success">
             <el-icon><CircleCheck /></el-icon>
           </div>
           <div class="stat-info">
@@ -345,7 +345,7 @@ onMounted(loadRules)
 
     p {
       margin: 0;
-      color: #909399;
+      color: var(--el-text-color-secondary);
     }
   }
 
@@ -367,6 +367,23 @@ onMounted(loadRules)
     align-items: center;
     justify-content: center;
     font-size: 24px;
+
+    &--primary {
+      background: var(--el-color-primary-light-9);
+      color: var(--el-color-primary);
+    }
+    &--success {
+      background: var(--el-color-success-light-9);
+      color: var(--el-color-success);
+    }
+    &--danger {
+      background: var(--el-color-danger-light-9);
+      color: var(--el-color-danger);
+    }
+    &--warning {
+      background: var(--el-color-warning-light-9);
+      color: var(--el-color-warning);
+    }
   }
 
   .stat-value {
@@ -377,7 +394,7 @@ onMounted(loadRules)
 
   .stat-label {
     font-size: 13px;
-    color: #909399;
+    color: var(--el-text-color-secondary);
     margin-top: 4px;
   }
 

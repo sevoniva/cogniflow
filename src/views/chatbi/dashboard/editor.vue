@@ -334,7 +334,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { GridLayout, GridItem } from 'vue-grid-layout'
 import {
@@ -411,6 +411,7 @@ const nameDialogVisible = ref(false)
 const previewMode = ref(false)
 const saving = ref(false)
 const pageLoading = ref(true)
+const hasUnsavedChanges = ref(false)
 
 const selectedDatasource = ref<number>()
 const datasources = ref<DataSource[]>([])
@@ -475,6 +476,7 @@ function syncLayoutToComponents(newLayout: any[]) {
       comp.height = item.h
     }
   })
+  hasUnsavedChanges.value = true
 }
 
 function selectComponentById(id: number) {
@@ -928,6 +930,7 @@ const removeComponent = (component: DashboardComponent) => {
   if (gridIndex > -1) {
     gridLayout.value.splice(gridIndex, 1)
   }
+  hasUnsavedChanges.value = true
   if (selectedComponent.value?.id === component.id) {
     selectedComponent.value = null
   }
@@ -948,6 +951,7 @@ const clearCanvas = () => {
 
 const updateComponent = () => {
   if (!selectedComponent.value) return
+  hasUnsavedChanges.value = true
   const comp = selectedComponent.value
   const index = components.value.findIndex(c => c.id === comp.id)
   if (index > -1) {
@@ -1032,6 +1036,8 @@ async function saveDashboard() {
     return
   }
 
+  hasUnsavedChanges.value = false
+
   ElMessage.success('保存成功')
   if (!dashboardId.value && response.data?.id) {
     dashboardId.value = response.data.id
@@ -1074,9 +1080,37 @@ const togglePreview = () => {
   selectedComponent.value = null
 }
 
-const goBack = () => {
+const goBack = async () => {
+  if (hasUnsavedChanges.value) {
+    try {
+      await ElMessageBox.confirm('当前有未保存的更改，确定离开吗？', '未保存的更改', {
+        confirmButtonText: '离开',
+        cancelButtonText: '留下',
+        type: 'warning'
+      })
+    } catch {
+      return
+    }
+  }
   router.push('/chatbi/dashboard')
 }
+
+onBeforeRouteLeave(async (_to, _from, next) => {
+  if (hasUnsavedChanges.value) {
+    try {
+      await ElMessageBox.confirm('当前有未保存的更改，确定离开吗？', '未保存的更改', {
+        confirmButtonText: '离开',
+        cancelButtonText: '留下',
+        type: 'warning'
+      })
+      next()
+    } catch {
+      next(false)
+    }
+  } else {
+    next()
+  }
+})
 
 async function confirmConfig() {
   if (!selectedComponent.value) {
@@ -1158,7 +1192,7 @@ onUnmounted(() => {
           margin: 0 0 12px;
           font-size: 14px;
           font-weight: 600;
-          color: #303133;
+          color: var(--el-text-color-primary);
         }
       }
 
@@ -1172,24 +1206,24 @@ onUnmounted(() => {
           flex-direction: column;
           align-items: center;
           padding: 12px 8px;
-          background: #f5f7fa;
+          background: var(--el-fill-color-light);
           border-radius: 4px;
           cursor: grab;
           transition: all 0.2s;
 
           &:hover {
-            background: #ecf5ff;
+            background: var(--el-color-primary-light-9);
             transform: translateY(-2px);
           }
 
           .chart-icon {
             margin-bottom: 8px;
-            color: #409eff;
+            color: var(--el-color-primary);
           }
 
           .chart-name {
             font-size: 12px;
-            color: #606266;
+            color: var(--el-text-color-regular);
           }
         }
       }
@@ -1199,7 +1233,7 @@ onUnmounted(() => {
         align-items: center;
         gap: 4px;
         font-size: 13px;
-        color: #606266;
+        color: var(--el-text-color-regular);
       }
     }
 
@@ -1212,7 +1246,7 @@ onUnmounted(() => {
       .canvas-toolbar {
         padding: 8px 16px;
         background: #fff;
-        border-bottom: 1px solid #e4e7ed;
+        border-bottom: 1px solid var(--el-border-color);
       }
 
       .canvas {
@@ -1233,7 +1267,7 @@ onUnmounted(() => {
         transition: box-shadow 0.2s, border-color 0.2s;
 
         &.selected {
-          border-color: #409eff;
+          border-color: var(--el-color-primary);
           box-shadow: 0 4px 16px rgba(64, 158, 255, 0.3);
         }
 
@@ -1256,14 +1290,14 @@ onUnmounted(() => {
             justify-content: space-between;
             align-items: center;
             padding: 8px 12px;
-            background: #f5f7fa;
+            background: var(--el-fill-color-light);
             border-radius: 4px 4px 0 0;
             cursor: move;
 
             .component-title {
               font-size: 13px;
               font-weight: 600;
-              color: #303133;
+              color: var(--el-text-color-primary);
             }
 
             .component-actions {
@@ -1288,7 +1322,7 @@ onUnmounted(() => {
               align-items: center;
               justify-content: center;
               height: 100%;
-              color: #909399;
+              color: var(--el-text-color-secondary);
 
               p {
                 margin: 8px 0 0;
@@ -1303,7 +1337,7 @@ onUnmounted(() => {
     .property-panel {
       width: 280px;
       background: #fff;
-      border-left: 1px solid #e4e7ed;
+      border-left: 1px solid var(--el-border-color);
       overflow-y: auto;
       padding: 16px;
 
@@ -1317,7 +1351,7 @@ onUnmounted(() => {
           margin: 0;
           font-size: 14px;
           font-weight: 600;
-          color: #303133;
+          color: var(--el-text-color-primary);
         }
       }
 

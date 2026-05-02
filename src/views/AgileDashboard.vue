@@ -198,10 +198,10 @@ onBeforeUnmount(() => {
 const projectId = ref(1) // 默认项目ID
 
 const overviewCards = ref([
-  { key: 'totalProjects', label: '项目总数', value: 0, icon: markRaw(Folder), color: '#409EFF' },
-  { key: 'activeProjects', label: '活跃项目', value: 0, icon: markRaw(TrendCharts), color: '#67C23A' },
-  { key: 'totalMembers', label: '团队人数', value: 0, icon: markRaw(User), color: '#E6A23C' },
-  { key: 'activeSprints', label: '进行中迭代', value: 0, icon: markRaw(Document), color: '#F56C6C' }
+  { key: 'totalProjects', label: '项目总数', value: 0, icon: markRaw(Folder), color: 'var(--el-color-primary)' },
+  { key: 'activeProjects', label: '活跃项目', value: 0, icon: markRaw(TrendCharts), color: 'var(--el-color-success)' },
+  { key: 'totalMembers', label: '团队人数', value: 0, icon: markRaw(User), color: 'var(--el-color-warning)' },
+  { key: 'activeSprints', label: '进行中迭代', value: 0, icon: markRaw(Document), color: 'var(--el-color-danger)' }
 ])
 
 const velocityChart = ref<HTMLElement>()
@@ -886,12 +886,12 @@ onMounted(async () => {
 .card-value {
   font-size: 28px;
   font-weight: bold;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .card-label {
   font-size: 14px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
   margin-top: 4px;
 }
 </style>

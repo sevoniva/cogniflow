@@ -366,15 +366,11 @@ const handleAlertTypeChange = (type: string) => {
 
 const handleDialogClose = () => {
   formRef.value?.resetFields()
-  Object.keys(formData).forEach(key => {
-    delete (formData as any)[key]
+  Object.assign(formData, {
+    ruleName: '', alertType: 'THRESHOLD', thresholdType: 'GT',
+    thresholdValue: 0, fluctuationRate: 10, pushMethod: 'EMAIL',
+    receiver: '', status: 1
   })
-  formData.alertType = 'THRESHOLD'
-  formData.thresholdType = 'GT'
-  formData.thresholdValue = 0
-  formData.fluctuationRate = 10
-  formData.pushMethod = 'EMAIL'
-  formData.status = 1
 }
 
 const handleSubmit = async () => {

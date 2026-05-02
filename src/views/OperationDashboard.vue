@@ -7,7 +7,7 @@
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-card">
-            <div class="stat-icon" style="background: #ecf5ff; color: #409eff;">
+            <div class="stat-icon stat-icon--primary">
               <el-icon :size="32"><User /></el-icon>
             </div>
             <div class="stat-content">
@@ -20,7 +20,7 @@
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-card">
-            <div class="stat-icon" style="background: #f0f9ff; color: #67c23a;">
+            <div class="stat-icon stat-icon--success">
               <el-icon :size="32"><UserFilled /></el-icon>
             </div>
             <div class="stat-content">
@@ -33,7 +33,7 @@
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-card">
-            <div class="stat-icon" style="background: #fef0f0; color: #f56c6c;">
+            <div class="stat-icon stat-icon--danger">
               <el-icon :size="32"><Plus /></el-icon>
             </div>
             <div class="stat-content">
@@ -46,7 +46,7 @@
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-card">
-            <div class="stat-icon" style="background: #fdf6ec; color: #e6a23c;">
+            <div class="stat-icon stat-icon--warning">
               <el-icon :size="32"><DataAnalysis /></el-icon>
             </div>
             <div class="stat-content">
@@ -407,6 +407,23 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+
+  &--primary {
+    background: var(--el-color-primary-light-9);
+    color: var(--el-color-primary);
+  }
+  &--success {
+    background: var(--el-color-success-light-9);
+    color: var(--el-color-success);
+  }
+  &--danger {
+    background: var(--el-color-danger-light-9);
+    color: var(--el-color-danger);
+  }
+  &--warning {
+    background: var(--el-color-warning-light-9);
+    color: var(--el-color-warning);
+  }
 }
 
 .stat-content {
@@ -416,13 +433,13 @@ onMounted(() => {
 .stat-value {
   font-size: 24px;
   font-weight: bold;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 14px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
 }
 
 .chart-row {

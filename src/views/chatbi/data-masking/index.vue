@@ -301,13 +301,11 @@ const handleMaskTypeChange = (type: string) => {
 
 const handleDialogClose = () => {
   formRef.value?.resetFields()
-  Object.keys(formData).forEach(key => {
-    delete (formData as any)[key]
+  Object.assign(formData, {
+    ruleName: '', tableName: '', fieldName: '',
+    maskType: 'PARTIAL', maskPattern: '前 3 后 4',
+    priority: 0, status: 1
   })
-  formData.maskType = 'PARTIAL'
-  formData.maskPattern = '前 3 后 4'
-  formData.priority = 0
-  formData.status = 1
 }
 
 const handleSubmit = async () => {
@@ -378,7 +376,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #909399;
+    color: var(--el-text-color-secondary);
     font-size: 12px;
     margin-top: 4px;
   }

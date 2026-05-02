@@ -132,12 +132,12 @@ async function handleLogin() {
 
 .login-header h1 {
   font-size: 28px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin: 0 0 8px;
 }
 
 .login-header p {
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-size: 14px;
   margin: 0;
 }

@@ -154,42 +154,42 @@
       <el-row :gutter="20">
         <el-col :xs="24" :sm="12" :md="8" :xl="4">
           <el-card shadow="hover" class="action-card" @click="$router.push('/chatbi/conversation')">
-            <el-icon :size="48" color="#2f6bff"><Service /></el-icon>
+            <el-icon :size="48" color="var(--el-color-primary)"><Service /></el-icon>
             <h4>AI 对话分析</h4>
             <p>连续追问，保留上下文</p>
           </el-card>
         </el-col>
         <el-col :xs="24" :sm="12" :md="8" :xl="4">
           <el-card shadow="hover" class="action-card" @click="$router.push('/chatbi/query')">
-            <el-icon :size="48" color="#409eff"><ChatDotRound /></el-icon>
+            <el-icon :size="48" color="var(--el-color-primary)"><ChatDotRound /></el-icon>
             <h4>智能查询</h4>
             <p>使用自然语言提问</p>
           </el-card>
         </el-col>
         <el-col :xs="24" :sm="12" :md="8" :xl="4">
           <el-card shadow="hover" class="action-card" @click="$router.push('/chatbi/history')">
-            <el-icon :size="48" color="#67c23a"><Clock /></el-icon>
+            <el-icon :size="48" color="var(--el-color-success)"><Clock /></el-icon>
             <h4>查询历史</h4>
             <p>查看最近执行记录</p>
           </el-card>
         </el-col>
         <el-col :xs="24" :sm="12" :md="8" :xl="4">
           <el-card shadow="hover" class="action-card" @click="$router.push('/chatbi/favorite')">
-            <el-icon :size="48" color="#e6a23c"><StarFilled /></el-icon>
+            <el-icon :size="48" color="var(--el-color-warning)"><StarFilled /></el-icon>
             <h4>我的收藏</h4>
             <p>管理收藏的查询与指标</p>
           </el-card>
         </el-col>
         <el-col :xs="24" :sm="12" :md="8" :xl="4">
           <el-card shadow="hover" class="action-card" @click="$router.push('/admin/datasource')">
-            <el-icon :size="48" color="#f56c6c"><Setting /></el-icon>
+            <el-icon :size="48" color="var(--el-color-danger)"><Setting /></el-icon>
             <h4>数据源管理</h4>
             <p>配置数据源连接</p>
           </el-card>
         </el-col>
         <el-col :xs="24" :sm="12" :md="8" :xl="4">
           <el-card shadow="hover" class="action-card" @click="$router.push('/chatbi/chart-market')">
-            <el-icon :size="48" color="#7c3aed"><DataAnalysis /></el-icon>
+            <el-icon :size="48" color="var(--el-color-primary)"><DataAnalysis /></el-icon>
             <h4>图表应用市场</h4>
             <p>浏览并应用全部图表类型</p>
           </el-card>
@@ -377,13 +377,13 @@ onMounted(loadHomeData)
 .hero-title {
   font-size: 48px;
   font-weight: 700;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 16px;
 }
 
 .hero-subtitle {
   font-size: 20px;
-  color: #606266;
+  color: var(--el-text-color-regular);
   margin-bottom: 40px;
 }
 
@@ -452,7 +452,7 @@ onMounted(loadHomeData)
 
 .guide-card p {
   margin: 10px 0 0;
-  color: #606266;
+  color: var(--el-text-color-regular);
   line-height: 1.7;
 }
 
@@ -508,7 +508,7 @@ onMounted(loadHomeData)
 }
 
 .hero-stat span {
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-size: 13px;
 }
 
@@ -527,7 +527,7 @@ onMounted(loadHomeData)
 .section-title {
   font-size: 28px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 24px;
 }
 
@@ -568,14 +568,14 @@ onMounted(loadHomeData)
 
 .scenario-info h3 {
   font-size: 20px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 8px;
 }
 
 .scenario-info p,
 .report-desc,
 .action-card p {
-  color: #606266;
+  color: var(--el-text-color-regular);
   line-height: 1.6;
 }
 
@@ -597,7 +597,7 @@ onMounted(loadHomeData)
 .report-card h4,
 .action-card h4 {
   font-size: 18px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 12px;
 }
 
@@ -606,8 +606,8 @@ onMounted(loadHomeData)
   justify-content: space-between;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #ebeef5;
-  color: #909399;
+  border-top: 1px solid var(--el-border-color-lighter);
+  color: var(--el-text-color-secondary);
   font-size: 13px;
 }
 

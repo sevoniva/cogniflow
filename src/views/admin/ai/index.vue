@@ -1045,18 +1045,18 @@ function formatThresholdSummary(thresholds: Record<string, string>) {
 }
 
 .check-item.ready {
-  color: #1b5e20;
+  color: var(--el-color-success-dark-2);
 }
 
 .check-item__dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #d0d7e6;
+  background: var(--el-border-color);
 }
 
 .check-item.ready .check-item__dot {
-  background: #67c23a;
+  background: var(--el-color-success);
 }
 
 .facts-grid {
@@ -1068,8 +1068,8 @@ function formatThresholdSummary(thresholds: Record<string, string>) {
 .fact-item {
   padding: 16px;
   border-radius: 16px;
-  background: #f6f8fc;
-  border: 1px solid #e7edf7;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .fact-item span {
@@ -1104,7 +1104,7 @@ function formatThresholdSummary(thresholds: Record<string, string>) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #2f6bff;
+  background: var(--el-color-primary);
   color: #fff;
   font-weight: 700;
 }
@@ -1157,9 +1157,9 @@ function formatThresholdSummary(thresholds: Record<string, string>) {
 }
 
 .health-strip__item {
-  border: 1px solid #e6edf9;
+  border: 1px solid var(--el-border-color-light);
   border-radius: 14px;
-  background: #fbfcff;
+  background: var(--el-fill-color-blank);
   padding: 12px 14px;
 }
 
@@ -1177,10 +1177,10 @@ function formatThresholdSummary(thresholds: Record<string, string>) {
 
 .threshold-panel {
   margin-bottom: 12px;
-  border: 1px solid #e6edf9;
+  border: 1px solid var(--el-border-color-light);
   border-radius: 14px;
   padding: 14px;
-  background: #fcfdff;
+  background: var(--el-fill-color-blank);
 }
 
 .threshold-panel__header {
@@ -1215,8 +1215,8 @@ function formatThresholdSummary(thresholds: Record<string, string>) {
 .alert-item {
   border-radius: 12px;
   padding: 10px 12px;
-  border: 1px solid #e6edf9;
-  background: #fafcff;
+  border: 1px solid var(--el-border-color-light);
+  background: var(--el-fill-color-blank);
 }
 
 .alert-item.is-warning {
@@ -1264,8 +1264,8 @@ function formatThresholdSummary(thresholds: Record<string, string>) {
 .provider-card {
   padding: 20px;
   border-radius: 18px;
-  border: 1px solid #e7edf7;
-  background: linear-gradient(180deg, #ffffff, #f8fbff);
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-blank);
   display: grid;
   gap: 16px;
 }

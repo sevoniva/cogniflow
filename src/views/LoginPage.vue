@@ -114,38 +114,35 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--cb-bg-hero);
-  padding: var(--cb-space-lg);
+  background: #f3f6fb;
+  padding: 24px;
 }
 
 .login-card {
-  position: relative;
-  width: 400px;
-  padding: var(--cb-space-xxl) var(--cb-space-xxl) var(--cb-space-xl);
-  background: var(--cb-bg-card);
-  backdrop-filter: blur(16px);
-  border-radius: var(--cb-radius-2xl);
-  box-shadow: var(--cb-shadow-lg);
-  border: 1px solid rgba(129, 157, 219, 0.12);
-  border-left: 3px solid var(--cb-primary);
+  width: 380px;
+  padding: 48px 40px 40px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #ebeef5;
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: var(--cb-space-xl);
+  margin-bottom: 36px;
 }
 
 .login-header h1 {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 600;
-  color: var(--cb-indigo);
-  letter-spacing: 0.04em;
+  color: #303133;
   margin: 0 0 8px;
+  letter-spacing: 0.02em;
 }
 
 .login-header p {
-  color: var(--cb-text-secondary);
-  font-size: var(--cb-font-md);
+  color: #909399;
+  font-size: 14px;
   margin: 0;
 }
 
@@ -155,6 +152,6 @@ async function handleLogin() {
 
 .login-btn {
   width: 100%;
-  margin-top: var(--cb-space-xs);
+  margin-top: 4px;
 }
 </style>

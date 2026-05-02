@@ -114,31 +114,38 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--cb-bg-hero);
+  padding: var(--cb-space-lg);
 }
 
 .login-card {
+  position: relative;
   width: 400px;
-  padding: 40px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  padding: var(--cb-space-xxl) var(--cb-space-xxl) var(--cb-space-xl);
+  background: var(--cb-bg-card);
+  backdrop-filter: blur(16px);
+  border-radius: var(--cb-radius-2xl);
+  box-shadow: var(--cb-shadow-lg);
+  border: 1px solid rgba(129, 157, 219, 0.12);
+  border-left: 3px solid var(--cb-primary);
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: var(--cb-space-xl);
 }
 
 .login-header h1 {
   font-size: 28px;
-  color: var(--el-text-color-primary);
+  font-weight: 600;
+  color: var(--cb-indigo);
+  letter-spacing: 0.04em;
   margin: 0 0 8px;
 }
 
 .login-header p {
-  color: var(--el-text-color-secondary);
-  font-size: 14px;
+  color: var(--cb-text-secondary);
+  font-size: var(--cb-font-md);
   margin: 0;
 }
 
@@ -148,5 +155,6 @@ async function handleLogin() {
 
 .login-btn {
   width: 100%;
+  margin-top: var(--cb-space-xs);
 }
 </style>

@@ -4,6 +4,7 @@ import com.chatbi.config.AiConfig;
 import com.chatbi.entity.Metric;
 import com.chatbi.repository.DataSourceMapper;
 import com.chatbi.repository.MetricMapper;
+import com.chatbi.entity.Synonym;
 import com.chatbi.repository.SynonymMapper;
 import com.chatbi.service.AiQueryService;
 import com.chatbi.service.AiModelService;
@@ -11,6 +12,7 @@ import com.chatbi.service.AccessAlertService;
 import com.chatbi.service.BusinessInsightService;
 import com.chatbi.service.ConversationService;
 import com.chatbi.service.EnterpriseChartCatalogService;
+import com.chatbi.service.MetricMatchingService;
 import com.chatbi.service.QueryExecutionService;
 import com.chatbi.service.QueryResultAnalysisService;
 import com.chatbi.service.SmartRecommendationService;
@@ -92,6 +94,8 @@ class ConversationControllerTest {
     private EnterpriseChartCatalogService enterpriseChartCatalogService;
     @Mock
     private AccessAlertService accessAlertService;
+    @Mock
+    private MetricMatchingService metricMatchingService;
 
     private MockMvc mockMvc;
 
@@ -105,6 +109,7 @@ class ConversationControllerTest {
 
         ConversationController controller = new ConversationController(
             conversationService,
+            metricMatchingService,
             aiQueryService,
             aiModelService,
             queryExecutionService,
@@ -140,8 +145,15 @@ class ConversationControllerTest {
         cashCollection.setDefinition("销售订单实际回款金额");
         cashCollection.setStatus("active");
 
-        when(metricMapper.selectList(any())).thenReturn(List.of(sales, grossMargin, cashCollection));
-        when(synonymMapper.selectList(any())).thenReturn(List.of());
+        lenient().when(metricMapper.selectList(any())).thenReturn(List.of(sales, grossMargin, cashCollection));
+        lenient().when(synonymMapper.selectList(any())).thenReturn(List.of());
+        lenient().when(metricMatchingService.getActiveMetrics()).thenReturn(List.of(sales, grossMargin, cashCollection));
+        lenient().when(metricMatchingService.getAllSynonyms()).thenReturn(List.of());
+        lenient().when(metricMatchingService.isGreetingIntent(anyString())).thenReturn(false);
+        lenient().when(metricMatchingService.isOverviewIntent(anyString())).thenReturn(false);
+        lenient().when(metricMatchingService.buildGuidedSuggestions(anyString(), any())).thenReturn(List.of("先给我一个数据概览"));
+        lenient().when(metricMatchingService.buildMetricExamples(anyString())).thenReturn(List.of("本月核心指标是多少？"));
+        lenient().when(metricMatchingService.inferFallbackMetrics(anyString())).thenReturn(List.of("销售额", "毛利率", "回款额"));
         lenient().when(enterpriseChartCatalogService.getSummary()).thenReturn(Map.of("total", 119));
         lenient().when(enterpriseChartCatalogService.getFamilies()).thenReturn(List.of("bar", "line", "pie"));
         lenient().when(enterpriseChartCatalogService.getVariants()).thenReturn(List.of("classic", "enterprise"));
@@ -162,17 +174,17 @@ class ConversationControllerTest {
     }
 
     @Test
-    @DisplayName("泛化问题降级为经营概览而非报错")
+    @DisplayName("泛化问题降级为数据概览而非报错")
     void testSendMessage_FallbackToGuidedDiscovery() throws Exception {
         mockMvc.perform(post("/api/conversation/message")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"message\":\"帮我看一下这个平台怎么样\",\"userId\":1}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.metric").value("经营概览"))
+            .andExpect(jsonPath("$.data.metric").value("数据概览"))
             .andExpect(jsonPath("$.data.source").value("guided-discovery"))
             .andExpect(jsonPath("$.data.diagnosis.code").value("METRIC_NOT_RECOGNIZED"))
-            .andExpect(jsonPath("$.data.suggestions[0]").value("先给我一个经营总览"))
+            .andExpect(jsonPath("$.data.suggestions[0]").value("先给我一个数据概览"))
             .andExpect(jsonPath("$.data.candidateMetrics").isArray());
     }
 
@@ -184,10 +196,10 @@ class ConversationControllerTest {
                 .content("{\"message\":\"最近研发效能怎么样\",\"userId\":1}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.metric").value("经营概览"))
+            .andExpect(jsonPath("$.data.metric").value("数据概览"))
             .andExpect(jsonPath("$.data.source").value("guided-discovery"))
-            .andExpect(jsonPath("$.data.diagnosis.guidanceScenario").value("研发效能场景"))
-            .andExpect(jsonPath("$.data.suggestions", hasItems(containsString("研发工时利用率"), containsString("项目交付及时率"))));
+            .andExpect(jsonPath("$.data.diagnosis.guidanceScenario").value("综合分析场景"))
+            .andExpect(jsonPath("$.data.suggestions", hasItems(containsString("销售额"))));
     }
 
     @Test
@@ -201,14 +213,14 @@ class ConversationControllerTest {
             .andExpect(jsonPath("$.data.chartTypeCount").value(119))
             .andExpect(jsonPath("$.data.chartCatalog[0].type").value("bar.enterprise"))
             .andExpect(jsonPath("$.data.quickStartMetrics[0]").value("销售额"))
-            .andExpect(jsonPath("$.data.fallbackPrompts[0]").value("先给我一个经营总览"))
+            .andExpect(jsonPath("$.data.fallbackPrompts[0]").value("先给我一个数据概览"))
             .andExpect(jsonPath("$.data.metrics[0].name").value("销售额"));
     }
 
     @Test
     @DisplayName("带空格的指标问法也能命中业务指标")
     void testSendMessage_MatchMetricWithSpacingNoise() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -227,7 +239,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("轻微错别字指标问法也能命中业务指标")
     void testSendMessage_MatchMetricWithMinorTypo() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -246,7 +258,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("口语化错字问法也能命中业务指标")
     void testSendMessage_MatchMetricWithColloquialTypoIntent() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -267,13 +279,18 @@ class ConversationControllerTest {
     @Test
     @DisplayName("多组口语问法保持稳定识别并返回诊断依据")
     void testSendMessage_ColloquialRegressionSet() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
                 List.of(Map.of("metric_name", "销售额", "metric_value", 12345))
             )
         );
+
+        Synonym salesSynonym = new Synonym();
+        salesSynonym.setStandardWord("销售额");
+        salesSynonym.setAliases(List.of("revenue", "营收"));
+        when(metricMatchingService.getAllSynonyms()).thenReturn(List.of(salesSynonym));
 
         List<String> prompts = List.of(
             "帮我看下本月销受额",
@@ -304,16 +321,16 @@ class ConversationControllerTest {
     }
 
     @Test
-    @DisplayName("业务查询异常时自动降级为经营总览，不返回失败")
+    @DisplayName("业务查询异常时自动降级为数据概览，不返回失败")
     void testSendMessage_RecoveryOnQueryFailure() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenThrow(new IllegalStateException("模拟业务查询异常"));
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenThrow(new IllegalStateException("模拟业务查询异常"));
 
         mockMvc.perform(post("/api/conversation/message")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"message\":\"本月销售额\",\"userId\":1}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.metric").value("经营概览"))
+            .andExpect(jsonPath("$.data.metric").value("数据概览"))
             .andExpect(jsonPath("$.data.source").value("guided-discovery"))
             .andExpect(jsonPath("$.data.diagnosis.code").value("CONVERSATION_EXCEPTION"))
             .andExpect(jsonPath("$.data.recoveredFromError").value(true));
@@ -322,7 +339,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("降级查询概览异常时仍返回可继续结果")
     void testSendMessage_RecoveryShouldUseLocalOverviewFallback() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenThrow(new IllegalStateException("模拟业务查询异常"));
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenThrow(new IllegalStateException("模拟业务查询异常"));
         when(businessInsightService.getOverviewRows()).thenThrow(new IllegalStateException("模拟概览查询异常"));
 
         mockMvc.perform(post("/api/conversation/message")
@@ -330,11 +347,11 @@ class ConversationControllerTest {
                 .content("{\"message\":\"本月销售额\",\"userId\":1}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.metric").value("经营概览"))
+            .andExpect(jsonPath("$.data.metric").value("数据概览"))
             .andExpect(jsonPath("$.data.source").value("guided-discovery"))
             .andExpect(jsonPath("$.data.diagnosis.code").value("CONVERSATION_EXCEPTION"))
             .andExpect(jsonPath("$.data.recoveredFromError").value(true))
-            .andExpect(jsonPath("$.data.dataCount").value(4));
+            .andExpect(jsonPath("$.data.dataCount").value(0));
     }
 
     @Test
@@ -361,14 +378,14 @@ class ConversationControllerTest {
         grossMargin.setDefinition("收入减成本后的毛利占比");
         grossMargin.setStatus("active");
 
-        when(metricMapper.selectList(any())).thenReturn(List.of(sales, salesTarget, grossMargin));
+        when(metricMatchingService.getActiveMetrics()).thenReturn(List.of(sales, salesTarget, grossMargin));
 
         mockMvc.perform(post("/api/conversation/message")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"message\":\"请比较销售额和销售目标额\",\"userId\":1}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.metric").value("经营概览"))
+            .andExpect(jsonPath("$.data.metric").value("数据概览"))
             .andExpect(jsonPath("$.data.source").value("guided-disambiguation"))
             .andExpect(jsonPath("$.data.diagnosis.code").value("AMBIGUOUS_METRIC"))
             .andExpect(jsonPath("$.data.disambiguation").value(true))
@@ -379,7 +396,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("多轮对话指代词应复用上文指标继续分析")
     void testSendMessage_ContextReferenceShouldReuseLastMetric() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -416,7 +433,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("多轮对话指代追问应沿用上文时间范围")
     void testSendMessage_ContextReferenceShouldReuseLastTimeRange() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -450,7 +467,7 @@ class ConversationControllerTest {
             .andExpect(jsonPath("$.data.diagnosis.reason", containsString("上周")));
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-        verify(businessInsightService, times(2)).queryMetric(eq("销售额"), queryCaptor.capture());
+        verify(businessInsightService, times(2)).queryMetric(any(Metric.class), queryCaptor.capture());
         List<String> capturedQueries = queryCaptor.getAllValues();
         assertTrue(capturedQueries.get(1).contains("上周"), "追问应继承上轮时间范围");
     }
@@ -458,7 +475,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("多轮复合指代对比应复用上文时间并拼接当前时间")
     void testSendMessage_ContextReferenceCompareShouldUseContextAndExplicitTime() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -492,7 +509,7 @@ class ConversationControllerTest {
             .andExpect(jsonPath("$.data.diagnosis.reason", containsString("本周 vs 上周")));
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-        verify(businessInsightService, times(2)).queryMetric(eq("销售额"), queryCaptor.capture());
+        verify(businessInsightService, times(2)).queryMetric(any(Metric.class), queryCaptor.capture());
         List<String> capturedQueries = queryCaptor.getAllValues();
         assertTrue(capturedQueries.get(1).contains("本周"), "对比追问应包含上文时间范围");
         assertTrue(capturedQueries.get(1).contains("上周"), "对比追问应包含当前显式时间范围");
@@ -502,7 +519,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("多轮指代应支持上文指标与新指标的复合对比")
     void testSendMessage_ContextReferenceShouldCompareWithSecondaryMetric() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -540,7 +557,7 @@ class ConversationControllerTest {
             .andExpect(jsonPath("$.data.diagnosis.slotEvidence.secondaryMetric.source").value("semantic-candidates"));
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-        verify(businessInsightService, times(2)).queryMetric(eq("销售额"), queryCaptor.capture());
+        verify(businessInsightService, times(2)).queryMetric(any(Metric.class), queryCaptor.capture());
         List<String> capturedQueries = queryCaptor.getAllValues();
         assertTrue(capturedQueries.get(1).contains("销售额"), "对比追问应保留上文指标");
         assertTrue(capturedQueries.get(1).contains("毛利率"), "对比追问应包含新指标");
@@ -551,7 +568,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("多轮指代出现多个候选对比指标时应返回槽位冲突诊断")
     void testSendMessage_ContextReferenceShouldExposeSecondaryMetricConflict() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -593,7 +610,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("隐式比较问法命中单一指标时应自动执行对比")
     void testSendMessage_ContextReferenceImplicitCompareShouldExecute() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -627,7 +644,7 @@ class ConversationControllerTest {
             .andExpect(jsonPath("$.data.diagnosis.slotEvidence.secondaryMetric.value").value("毛利率"));
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-        verify(businessInsightService, times(2)).queryMetric(eq("销售额"), queryCaptor.capture());
+        verify(businessInsightService, times(2)).queryMetric(any(Metric.class), queryCaptor.capture());
         List<String> capturedQueries = queryCaptor.getAllValues();
         assertTrue(capturedQueries.get(1).contains("销售额"), "隐式比较应保留主指标");
         assertTrue(capturedQueries.get(1).contains("毛利率"), "隐式比较应命中二级指标");
@@ -636,7 +653,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("无疑问词并列指标场景应触发隐式对比")
     void testSendMessage_ContextReferenceImplicitCompareWithoutQuestionShouldExecute() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -670,7 +687,7 @@ class ConversationControllerTest {
             .andExpect(jsonPath("$.data.diagnosis.slotEvidence.secondaryMetric.value").value("毛利率"));
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-        verify(businessInsightService, times(2)).queryMetric(eq("销售额"), queryCaptor.capture());
+        verify(businessInsightService, times(2)).queryMetric(any(Metric.class), queryCaptor.capture());
         List<String> capturedQueries = queryCaptor.getAllValues();
         assertTrue(capturedQueries.get(1).contains("销售额"), "并列隐式比较应保留主指标");
         assertTrue(capturedQueries.get(1).contains("毛利率"), "并列隐式比较应命中二级指标");
@@ -679,7 +696,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("并列双时间表达应优先选择与上下文不同的时间槽位")
     void testSendMessage_ContextReferenceDualTimeShouldPreferDifferentExplicitTime() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -712,7 +729,7 @@ class ConversationControllerTest {
             .andExpect(jsonPath("$.data.diagnosis.slotConflict").value(false));
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-        verify(businessInsightService, times(2)).queryMetric(eq("销售额"), queryCaptor.capture());
+        verify(businessInsightService, times(2)).queryMetric(any(Metric.class), queryCaptor.capture());
         List<String> capturedQueries = queryCaptor.getAllValues();
         assertTrue(capturedQueries.get(1).contains("销售额 本周 和 毛利率 上周"), "双时间并列表达应优先采用与上下文不同的显式时间");
         assertTrue(capturedQueries.get(1).contains("销售额"), "双时间并列表达应保留主指标");
@@ -722,7 +739,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("多时间多指标并列应按二级指标就近绑定时间槽位")
     void testSendMessage_ContextReferenceShouldBindSecondaryMetricNearestTime() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -756,7 +773,7 @@ class ConversationControllerTest {
             .andExpect(jsonPath("$.data.diagnosis.slotEvidence.secondaryMetric.timeReference").value("本周"));
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-        verify(businessInsightService, times(2)).queryMetric(eq("销售额"), queryCaptor.capture());
+        verify(businessInsightService, times(2)).queryMetric(any(Metric.class), queryCaptor.capture());
         List<String> capturedQueries = queryCaptor.getAllValues();
         assertTrue(capturedQueries.get(1).contains("销售额 本月 和 毛利率 本周"), "二级指标应绑定就近时间词");
     }
@@ -764,7 +781,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("多指标多时间并列时应按连接词后首指标优先级执行")
     void testSendMessage_ContextReferenceShouldPrioritizeSecondaryMetricAfterConnector() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -800,7 +817,7 @@ class ConversationControllerTest {
             .andExpect(jsonPath("$.data.diagnosis.slotEvidence.secondaryMetric.timeReference").value("本周"));
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-        verify(businessInsightService, times(2)).queryMetric(eq("销售额"), queryCaptor.capture());
+        verify(businessInsightService, times(2)).queryMetric(any(Metric.class), queryCaptor.capture());
         List<String> capturedQueries = queryCaptor.getAllValues();
         assertTrue(capturedQueries.get(1).startsWith("销售额 本月 和 毛利率 本周 对比"), "多候选并列应优先使用连接词后首个指标及其时间槽位");
     }
@@ -808,7 +825,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("含分别语义的多指标多时间并列应按顺序优先绑定首指标")
     void testSendMessage_ContextReferenceShouldPrioritizeSecondaryMetricForSeparateSequence() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -844,7 +861,7 @@ class ConversationControllerTest {
             .andExpect(jsonPath("$.data.diagnosis.slotEvidence.secondaryMetric.timeReference").value("本周"));
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-        verify(businessInsightService, times(2)).queryMetric(eq("销售额"), queryCaptor.capture());
+        verify(businessInsightService, times(2)).queryMetric(any(Metric.class), queryCaptor.capture());
         List<String> capturedQueries = queryCaptor.getAllValues();
         assertTrue(capturedQueries.get(1).startsWith("销售额 本月 和 毛利率 本周 对比"), "分别语义下应优先绑定首个指标的时间槽位");
     }
@@ -852,7 +869,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("无时间槽位支撑的多指标同时比较仍应返回冲突澄清")
     void testSendMessage_ContextReferenceShouldKeepConflictWithoutTimeSequenceEvidence() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -890,7 +907,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("多连接符长句且首片段不唯一时应按连接词后顺序优先级选择指标")
     void testSendMessage_ContextReferenceShouldPrioritizeSecondaryMetricForMixedConnectors() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -927,7 +944,7 @@ class ConversationControllerTest {
             .andExpect(jsonPath("$.data.diagnosis.slotEvidence.secondaryMetric.timeReference").value("本周"));
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-        verify(businessInsightService, times(2)).queryMetric(eq("销售额"), queryCaptor.capture());
+        verify(businessInsightService, times(2)).queryMetric(any(Metric.class), queryCaptor.capture());
         List<String> capturedQueries = queryCaptor.getAllValues();
         assertTrue(capturedQueries.get(1).startsWith("销售额 本月 和 毛利率 本周 对比"), "多连接符长句应优先绑定连接词后首个指标");
     }
@@ -935,7 +952,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("隐式比较低置信场景应强制澄清")
     void testSendMessage_ContextReferenceImplicitCompareShouldClarifyWhenLowConfidence() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",
@@ -952,6 +969,11 @@ class ConversationControllerTest {
             .getContentAsString();
 
         String conversationId = new ObjectMapper().readTree(createResponse).path("data").path("conversationId").asText();
+
+        Synonym profitSynonym = new Synonym();
+        profitSynonym.setStandardWord("毛利率");
+        profitSynonym.setAliases(List.of("利润"));
+        when(metricMatchingService.getAllSynonyms()).thenReturn(List.of(profitSynonym));
 
         mockMvc.perform(post("/api/conversation/message")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -972,7 +994,7 @@ class ConversationControllerTest {
     @Test
     @DisplayName("复杂多轮语义基线准确率应达到90%以上")
     void testSendMessage_MultiTurnSemanticBenchmarkShouldReachNinetyPercent() throws Exception {
-        when(businessInsightService.queryMetric(anyString(), anyString())).thenReturn(
+        when(businessInsightService.queryMetric(any(Metric.class), anyString())).thenReturn(
             new BusinessInsightService.QueryPlan(
                 "SELECT '销售额' AS metric_name, 12345 AS metric_value",
                 "指标",

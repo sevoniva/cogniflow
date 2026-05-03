@@ -103,7 +103,7 @@ public class DashboardController {
     @Operation(summary = "获取仪表板统计数据")
     @GetMapping("/{id}/stats")
     public Result<Map<String, Object>> getDashboardStats(@PathVariable Long id) {
-        return Result.ok(businessInsightService.getDashboardStats());
+        return Result.ok(Map.of("overview", businessInsightService.getOverviewRows()));
     }
 
     /**

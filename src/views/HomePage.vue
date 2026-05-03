@@ -77,7 +77,7 @@
         <div class="guide-card">
           <span class="guide-card__step">01</span>
           <strong>先输入业务问题</strong>
-          <p>直接问“本月销售额”或“库存周转天数按仓库对比”，系统会先匹配真实业务指标和同义词。</p>
+          <p>直接问“本月核心指标”或“核心指标按维度对比”，系统会先匹配真实业务指标和同义词。</p>
         </div>
         <div class="guide-card">
           <span class="guide-card__step">02</span>
@@ -94,10 +94,10 @@
       <div class="example-queries">
         <span class="example-queries__label">可直接点击体验</span>
         <div class="example-queries__list">
-          <button type="button" class="example-query" @click="fillExample('本月销售额')">本月销售额</button>
-          <button type="button" class="example-query" @click="fillExample('库存周转天数按仓库对比')">库存周转天数按仓库对比</button>
-          <button type="button" class="example-query" @click="fillExample('研发工时利用率按团队对比')">研发工时利用率按团队对比</button>
-          <button type="button" class="example-query" @click="router.push('/chatbi/conversation?q=' + encodeURIComponent('先给我一个经营总览'))">经营总览 AI 分析</button>
+          <button type="button" class="example-query" @click="fillExample('本月核心指标')">本月核心指标</button>
+          <button type="button" class="example-query" @click="fillExample('核心指标按维度对比')">核心指标按维度对比</button>
+          <button type="button" class="example-query" @click="fillExample('核心指标按团队对比')">核心指标按团队对比</button>
+          <button type="button" class="example-query" @click="router.push('/chatbi/conversation?q=' + encodeURIComponent('先给我一个数据概览'))">数据概览 AI 分析</button>
         </div>
       </div>
     </div>
@@ -253,7 +253,7 @@ const scenarios = [
   {
     id: 1,
     name: '销售分析',
-    description: '销售额、订单、客户、产品等销售数据分析',
+    description: '核心指标、维度、趋势等数据分析',
     icon: TrendCharts,
     color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     tag: '经营增长',

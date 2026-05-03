@@ -78,7 +78,7 @@ public class MetricCubeService {
         return buildFromMeasures(matchedMetric, question);
     }
 
-    private String buildFromCubeSql(Metric metric, String question) {
+    public String buildFromCubeSql(Metric metric, String question) {
         String sql = metric.getCubeSql();
 
         // 解析时间维度
@@ -102,7 +102,7 @@ public class MetricCubeService {
         return sql;
     }
 
-    private String buildFromMeasures(Metric metric, String question) {
+    public String buildFromMeasures(Metric metric, String question) {
         String aggregation = metric.getAggregation() != null ? metric.getAggregation() : "SUM";
         String measureField = metric.getColumnName() != null ? metric.getColumnName() : "";
         String tableName = metric.getTableName() != null ? metric.getTableName() : "";

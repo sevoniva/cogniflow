@@ -13,11 +13,11 @@ import {
 describe('diagnosis ranked candidate helpers', () => {
   it('formats ranked candidate label with reason', () => {
     const text = buildRankedCandidateLabel(
-      { metric: '毛利率', score: 65, reason: '位于比较连接词后' },
+      { metric: '指标A', score: 65, reason: '位于比较连接词后' },
       0
     )
     expect(text).toContain('候选排序1')
-    expect(text).toContain('毛利率（65）')
+    expect(text).toContain('指标A（65）')
     expect(text).toContain('位于比较连接词后')
   })
 
@@ -29,9 +29,9 @@ describe('diagnosis ranked candidate helpers', () => {
 
   it('returns compact list and hidden count when collapsed', () => {
     const items = [
-      { metric: '毛利率' },
-      { metric: '回款额' },
-      { metric: '销售目标额' }
+      { metric: '指标A' },
+      { metric: '指标B' },
+      { metric: '指标D' }
     ]
     expect(visibleRankedCandidates(items, false, 2)).toHaveLength(2)
     expect(hiddenRankedCandidateCount(items, false, 2)).toBe(1)
@@ -39,9 +39,9 @@ describe('diagnosis ranked candidate helpers', () => {
 
   it('returns full list and no hidden count when expanded', () => {
     const items = [
-      { metric: '毛利率' },
-      { metric: '回款额' },
-      { metric: '销售目标额' }
+      { metric: '指标A' },
+      { metric: '指标B' },
+      { metric: '指标D' }
     ]
     expect(visibleRankedCandidates(items, true, 2)).toHaveLength(3)
     expect(hiddenRankedCandidateCount(items, true, 2)).toBe(0)
@@ -62,9 +62,9 @@ describe('diagnosis ranked candidate helpers', () => {
 
   it('builds reason filter options with counts', () => {
     const items = [
-      { metric: '毛利率', reason: '命中指标词 + 位于比较连接词后' },
-      { metric: '回款额', reason: '与时间词距离近' },
-      { metric: '库存周转天数', reason: '候选基础命中' }
+      { metric: '指标A', reason: '命中指标词 + 位于比较连接词后' },
+      { metric: '指标B', reason: '与时间词距离近' },
+      { metric: '指标C', reason: '候选基础命中' }
     ]
 
     expect(rankedCandidateReasonOptions(items)).toEqual([
@@ -77,21 +77,21 @@ describe('diagnosis ranked candidate helpers', () => {
 
   it('filters ranked candidates by selected reason', () => {
     const items = [
-      { metric: '毛利率', reason: '命中指标词 + 位于比较连接词后' },
-      { metric: '回款额', reason: '与时间词距离近' },
-      { metric: '库存周转天数', reason: '候选基础命中' }
+      { metric: '指标A', reason: '命中指标词 + 位于比较连接词后' },
+      { metric: '指标B', reason: '与时间词距离近' },
+      { metric: '指标C', reason: '候选基础命中' }
     ]
 
     expect(filterRankedCandidatesByReason(items, 'connector').map(item => item.metric)).toEqual([
-      '毛利率'
+      '指标A'
     ])
     expect(filterRankedCandidatesByReason(items, 'time').map(item => item.metric)).toEqual([
-      '回款额'
+      '指标B'
     ])
   })
 
   it('falls back to other group when reason is empty', () => {
-    const items = [{ metric: '毛利率' }]
+    const items = [{ metric: '指标A' }]
 
     expect(rankedCandidateReasonGroups(items[0])).toEqual(['other'])
     expect(rankedCandidateReasonOptions(items)).toEqual([
@@ -102,9 +102,9 @@ describe('diagnosis ranked candidate helpers', () => {
 
   it('keeps original ranking index after filtering', () => {
     const items = [
-      { metric: '毛利率', reason: '命中指标词' },
-      { metric: '回款额', reason: '与时间词距离近' },
-      { metric: '销售目标额', reason: '位于比较连接词后' }
+      { metric: '指标A', reason: '命中指标词' },
+      { metric: '指标B', reason: '与时间词距离近' },
+      { metric: '指标D', reason: '位于比较连接词后' }
     ]
     const filtered = filterRankedCandidatesByReason(items, 'time')
 

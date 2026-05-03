@@ -290,7 +290,6 @@ public class DataInitializer implements CommandLineRunner {
             for (Synonym synonym : synonyms) {
                 try {
                     synonymMapper.insert(synonym);
-                    inserted++;
                 } catch (DuplicateKeyException ex) {
                     log.debug("默认同义词已存在，跳过 standardWord={}", synonym.getStandardWord());
                 }

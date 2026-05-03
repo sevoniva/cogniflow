@@ -53,8 +53,8 @@
             description="对话页会先尝试识别业务指标和同义词，再决定走业务语义引擎还是外部大模型。无论哪种模式，都只查询真实后端数据。"
           >
             <template #actions>
-              <el-button type="primary" plain @click="prefillAndSend('先给我一个经营总览')">
-                经营总览
+              <el-button type="primary" plain @click="prefillAndSend('先给我一个数据概览')">
+                数据概览
               </el-button>
               <el-button plain @click="router.push('/chatbi/result?q=本月销售额')">
                 看结果页
@@ -72,7 +72,7 @@
             <div class="guide-item">
               <span class="guide-item__step">01</span>
               <strong>先说指标</strong>
-              <p>例如：销售额、毛利率、审批平均时长。</p>
+              <p>例如：订单量、用户活跃数、审批时长等。</p>
             </div>
             <div class="guide-item">
               <span class="guide-item__step">02</span>
@@ -243,7 +243,7 @@
               type="textarea"
               :autosize="{ minRows: 2, maxRows: 4 }"
               :disabled="loading"
-              placeholder="例如：本月销售额是多少？如果继续追问，可以直接说“那华东呢？”"
+              placeholder="例如：本月核心指标是多少？如果继续追问，可以直接说“那华东呢？”"
               @keydown.enter.exact.prevent="handleSend"
             />
             <div class="composer-actions">
@@ -251,7 +251,7 @@
                 回车发送，Shift + 回车换行
               </span>
               <div class="composer-actions__buttons">
-                <el-button plain @click="prefill('先给我一个经营总览')">插入总览问法</el-button>
+                <el-button plain @click="prefill('先给我一个数据概览')">插入总览问法</el-button>
                 <el-button type="primary" :loading="loading" @click="handleSend">
                   <el-icon><Promotion /></el-icon>
                   发送
@@ -659,10 +659,10 @@ const capabilities = ref<ConversationCapabilities>({
 })
 
 const starterQuestions = ref<string[]>([
-  '本月销售额是多少？',
-  '销售额趋势如何？',
-  '上月审批平均时长是多少？',
-  '先给我一个经营总览'
+  '本月核心指标是多少？',
+  '核心指标趋势如何？',
+  '上月核心指标是多少？',
+  '先给我一个数据概览'
 ])
 const metricQuickKeyword = ref('')
 
@@ -983,7 +983,7 @@ function appendAssistantGuidedFallback(message: string) {
     ? capabilities.value.fallbackPrompts
     : starterQuestions.value.length
       ? starterQuestions.value
-      : ['先给我一个经营总览']
+      : ['先给我一个数据概览']
   )
   messages.value.push({
     role: 'assistant',
@@ -1004,7 +1004,7 @@ function appendAssistantGuidedFallback(message: string) {
       reason: '当前请求未返回可用结果，已切换到前端引导模式。',
       recovered: true,
       actions: suggestions.slice(0, 4),
-      guidanceScenario: '综合经营场景'
+      guidanceScenario: '综合分析场景'
     }
   })
 }

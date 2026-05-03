@@ -35,7 +35,7 @@ KEY(id) VALUES
 
 MERGE INTO synonyms (id, standard_word, aliases, description, status, created_at, updated_at)
 KEY(id) VALUES
-(1, '销售额', '["营收","收入","营业额"]', '销售额相关同义词', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, '销售额', '["营收","收入","营业额","revenue"]', '销售额相关同义词', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (2, '订单数', '["单量","订单数量"]', '订单数相关同义词', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 MERGE INTO subscription (id, title, type, resource_id, subscriber_id, subscriber_name, push_method, receiver, frequency, push_time, push_day, status, created_by, created_at, updated_at, push_count)

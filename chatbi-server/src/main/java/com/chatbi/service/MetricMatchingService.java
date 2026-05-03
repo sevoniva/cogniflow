@@ -91,13 +91,6 @@ public class MetricMatchingService {
                 }
             }
         }
-        for (Map.Entry<String, List<String>> entry : METRIC_KEYWORDS.entrySet()) {
-            boolean matchedKeyword = entry.getValue().stream().anyMatch(kw -> MetricSemanticMatcher.containsTerm(query, kw));
-            if (matchedKeyword) {
-                Metric mapped = findMetricByName(metrics, entry.getKey());
-                if (mapped != null) return mapped;
-            }
-        }
         return resolveByFuzzySimilarity(query, metrics, synonyms);
     }
 
@@ -109,11 +102,6 @@ public class MetricMatchingService {
                 score.score += 100;
                 score.directHits += 1;
             }
-            for (String keyword : METRIC_KEYWORDS.getOrDefault(metric.getName(), List.of())) {
-                if (MetricSemanticMatcher.containsTerm(query, keyword)) {
-                    score.score += 36;
-                }
-            }
             double fuzzy = MetricSemanticMatcher.similarity(query, metric.getName());
             score.similarity = Math.max(score.similarity, fuzzy);
             if (fuzzy >= 0.82) {
@@ -122,8 +110,9 @@ public class MetricMatchingService {
                 score.score += (int) Math.round(fuzzy * 12);
             }
             if (metric.getDefinition() != null) {
-                for (String token : List.of("销售", "毛利", "利润", "回款", "库存", "履约", "交付", "投诉", "工时", "研发", "费用", "审批", "时长")) {
-                    if (MetricSemanticMatcher.containsTerm(query, token) && metric.getDefinition().contains(token)) {
+                String[] queryTokens = query.split("[^\\u4e00-\\u9fa5a-zA-Z0-9]+");
+                for (String token : queryTokens) {
+                    if (token.length() >= 2 && metric.getDefinition().contains(token)) {
                         score.score += 20;
                     }
                 }
@@ -217,9 +206,8 @@ public class MetricMatchingService {
             "情况", "如何", "怎么样", "咋样", "咋回事", "行不行", "盘下"
         );
         boolean actionHit = actionHints.stream().anyMatch(item -> MetricSemanticMatcher.containsTerm(query, item));
-        boolean metricHint = METRIC_KEYWORDS.getOrDefault(metric.getName(), List.of(metric.getName()))
-            .stream().anyMatch(item -> MetricSemanticMatcher.containsTerm(query, item));
-        return actionHit || metricHint;
+        boolean metricNameHit = metric.getName() != null && MetricSemanticMatcher.containsTerm(query, metric.getName());
+        return actionHit || metricNameHit;
     }
 
     public Metric findMetricByName(List<Metric> metrics, String name) {
@@ -261,7 +249,7 @@ public class MetricMatchingService {
 
     public boolean isOverviewIntent(String query) {
         return containsAny(query, List.of(
-            "经营总览", "经营情况", "业务情况", "整体情况", "总体情况",
+            "数据概览", "数据情况", "业务情况", "整体情况", "总体情况",
             "整体分析", "现状", "概况", "总览", "最近怎么样",
             "有没有风险", "风险点", "分析一下", "帮我分析",
             "帮我看下", "帮我看看", "总结一下", "总结下", "情况怎么样"
@@ -276,7 +264,7 @@ public class MetricMatchingService {
 
     public List<String> buildGuidedSuggestions(String query, List<String> candidateMetrics) {
         if (isGreetingIntent(query) || isOverviewIntent(query)) {
-            return List.of("先给我一个经营总览", "本月销售额是多少？", "库存周转天数按仓库对比");
+            return List.of("先给我一个数据概览");
         }
         if (candidateMetrics == null || candidateMetrics.isEmpty()) {
             return inferFallbackMetrics(query).stream()
@@ -302,19 +290,7 @@ public class MetricMatchingService {
         if (containsAny(query, List.of("趋势", "变化", "走势"))) return timePrefix + metric + "趋势如何？";
         if (containsAny(query, List.of("对比", "比较", "排名", "按"))) return timePrefix + metric + "按区域对比";
         if (containsAny(query, List.of("占比", "构成", "结构"))) return timePrefix + metric + "占比如何？";
-        return switch (metric) {
-            case "销售额" -> timePrefix + "销售额是多少？";
-            case "毛利率" -> timePrefix + "毛利率趋势如何？";
-            case "回款额" -> timePrefix + "回款额是多少？";
-            case "库存周转天数" -> "库存周转天数按仓库对比";
-            case "订单履约率" -> timePrefix + "订单履约率如何？";
-            case "项目交付及时率" -> "上季度项目交付及时率";
-            case "客户投诉量" -> "本季度客户投诉量按区域分布";
-            case "研发工时利用率" -> "研发工时利用率按团队对比";
-            case "部门费用支出" -> timePrefix + "部门费用支出按部门对比";
-            case "审批平均时长" -> "上月审批平均时长是多少？";
-            default -> timePrefix + metric;
-        };
+        return timePrefix + metric + "是多少？";
     }
 
     public String inferTimePrefix(String query, String metric) {
@@ -328,31 +304,24 @@ public class MetricMatchingService {
         if (containsAny(query, List.of("去年"))) return "去年";
         if (containsAny(query, List.of("上月"))) return "上月";
         if (containsAny(query, List.of("本月", "当月"))) return "本月";
-        if ("项目交付及时率".equals(metric) || "客户投诉量".equals(metric)) return "本季度";
         return "本月";
     }
 
     public List<String> inferFallbackMetrics(String query) {
-        if (containsAny(query, List.of("研发", "交付", "上线", "迭代", "项目")))
-            return List.of("研发工时利用率", "项目交付及时率", "审批平均时长");
-        if (containsAny(query, List.of("客户", "客诉", "投诉", "体验", "留存")))
-            return List.of("客户投诉量", "订单履约率", "回款额");
-        if (containsAny(query, List.of("成本", "费用", "支出", "预算")))
-            return List.of("部门费用支出", "毛利率", "库存周转天数");
-        return List.of("销售额", "毛利率", "库存周转天数");
+        List<Metric> activeMetrics = getActiveMetrics();
+        if (activeMetrics == null || activeMetrics.isEmpty()) {
+            return List.of();
+        }
+        return activeMetrics.stream()
+            .map(Metric::getName)
+            .filter(name -> name != null && !name.isBlank())
+            .distinct()
+            .limit(3)
+            .toList();
     }
 
     public String detectGuidanceScenario(String query, List<String> candidateMetrics) {
-        if (containsAny(query, List.of("研发", "交付", "上线", "迭代", "项目"))) return "研发效能场景";
-        if (containsAny(query, List.of("客户", "客诉", "投诉", "体验", "留存"))) return "客户经营场景";
-        if (containsAny(query, List.of("成本", "费用", "支出", "预算"))) return "成本管控场景";
-        List<String> metrics = candidateMetrics == null ? List.of() : candidateMetrics;
-        if (metrics.stream().anyMatch(m -> m != null && m.contains("研发"))) return "研发效能场景";
-        if (metrics.stream().anyMatch(m -> m != null && (m.contains("客户") || m.contains("投诉") || m.contains("履约"))))
-            return "客户经营场景";
-        if (metrics.stream().anyMatch(m -> m != null && (m.contains("费用") || m.contains("毛利") || m.contains("库存"))))
-            return "成本管控场景";
-        return "综合经营场景";
+        return "综合分析场景";
     }
 
     public List<String> buildIntentTags(String query) {
@@ -369,19 +338,7 @@ public class MetricMatchingService {
     }
 
     public List<String> buildMetricExamples(String metricName) {
-        return switch (metricName) {
-            case "销售额" -> List.of("本月销售额是多少？", "销售额按区域对比", "销售额趋势如何？");
-            case "毛利率" -> List.of("毛利率趋势如何？", "毛利率按区域对比", "哪个产品类别毛利率最高？");
-            case "回款额" -> List.of("回款额是多少？", "各部门回款额对比", "回款额趋势如何？");
-            case "库存周转天数" -> List.of("库存周转天数按仓库对比", "哪个品类周转最慢？", "库存周转趋势如何？");
-            case "订单履约率" -> List.of("订单履约率如何？", "订单履约率按区域对比", "近三个月履约率趋势");
-            case "项目交付及时率" -> List.of("上季度项目交付及时率", "各团队项目交付及时率", "项目交付及时率趋势");
-            case "客户投诉量" -> List.of("本季度客户投诉量按区域分布", "客户投诉量趋势如何？", "哪个渠道投诉最多");
-            case "研发工时利用率" -> List.of("研发工时利用率按团队对比", "研发工时利用率趋势", "哪个成员利用率最高");
-            case "部门费用支出" -> List.of("部门费用支出按部门对比", "费用支出趋势如何？", "费用异常最高的部门");
-            case "审批平均时长" -> List.of("审批平均时长按部门拆解", "审批平均时长趋势", "哪个流程审批最慢");
-            default -> List.of("先给我一个经营总览", "本月销售额是多少？", "库存周转天数按仓库对比");
-        };
+        return List.of("本月" + metricName + "是多少？", metricName + "趋势如何？");
     }
 
     // ─── 记录类型 ───
@@ -399,17 +356,6 @@ public class MetricMatchingService {
     // ─── 内部 ───
 
     private static Map<String, List<String>> createMetricKeywords() {
-        Map<String, List<String>> map = new LinkedHashMap<>();
-        map.put("销售额", List.of("销售额", "销售", "营收", "收入", "营业额", "销售收入", "业绩", "revenue", "sales"));
-        map.put("毛利率", List.of("毛利率", "毛利", "利润率", "利润", "盈利", "grossmargin", "margin", "profitmargin"));
-        map.put("回款额", List.of("回款额", "回款", "到账", "收款", "现金回笼", "cashcollection", "collection"));
-        map.put("库存周转天数", List.of("库存周转天数", "库存周转", "库存", "周转天数", "库存效率", "inventoryturnover", "inventory"));
-        map.put("订单履约率", List.of("订单履约率", "履约率", "履约", "交付履约", "按时履约", "fulfillmentrate", "fulfillment"));
-        map.put("项目交付及时率", List.of("项目交付及时率", "交付及时率", "交付率", "项目交付", "交付效率", "ontimedelivery", "deliveryrate"));
-        map.put("客户投诉量", List.of("客户投诉量", "投诉", "客诉", "投诉量", "客户体验", "complaint", "complaints"));
-        map.put("研发工时利用率", List.of("研发工时利用率", "工时", "工时利用率", "研发", "研发效率", "研发产能", "rdutilization", "utilization"));
-        map.put("部门费用支出", List.of("部门费用支出", "费用", "支出", "成本", "开销", "花费", "expense", "cost"));
-        map.put("审批平均时长", List.of("审批平均时长", "审批", "审批效率", "审批时长", "审批时效", "流程效率", "approvaltime", "workflow"));
-        return map;
+        return new LinkedHashMap<>();
     }
 }

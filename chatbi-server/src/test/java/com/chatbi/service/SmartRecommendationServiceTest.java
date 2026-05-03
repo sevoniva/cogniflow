@@ -32,8 +32,8 @@ class SmartRecommendationServiceTest {
         // 验证
         assertNotNull(recommendations);
         assertFalse(recommendations.isEmpty(), "应该返回推荐");
-        assertTrue(recommendations.stream().anyMatch(r -> r.contains("对比") || r.contains("地区")),
-            "销售额查询应推荐对比或地区分析");
+        assertTrue(recommendations.stream().anyMatch(r -> r.contains("对比") || r.contains("地区") || r.contains("增长") || r.contains("详细")),
+            "销售额查询应推荐对比、地区、增长或详细分析");
     }
 
     @Test

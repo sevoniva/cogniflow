@@ -52,11 +52,11 @@ class ExportControllerTest {
         when(exportService.generateFileName(anyString(), anyString())).thenReturn("test_20260310_120000.xlsx");
         when(exportService.getExcelMimeType()).thenReturn("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
-        ResponseEntity<byte[]> response = exportController.exportExcel(testData, "test", testHeaders);
+        ResponseEntity<?> response = exportController.exportExcel(testData, "test", testHeaders);
 
         assertNotNull(response);
         assertEquals(200, response.getStatusCode().value());
-        assertArrayEquals(mockExcelData, response.getBody());
+        assertArrayEquals(mockExcelData, (byte[]) response.getBody());
         verify(exportService).exportExcel(testData, testHeaders, "test");
     }
 
@@ -68,11 +68,11 @@ class ExportControllerTest {
         when(exportService.generateFileName(anyString(), anyString())).thenReturn("test_20260310_120000.pdf");
         when(exportService.getPdfMimeType()).thenReturn("application/pdf");
 
-        ResponseEntity<byte[]> response = exportController.exportPdf(testData, "测试报表", testHeaders);
+        ResponseEntity<?> response = exportController.exportPdf(testData, "测试报表", testHeaders);
 
         assertNotNull(response);
         assertEquals(200, response.getStatusCode().value());
-        assertArrayEquals(mockPdfData, response.getBody());
+        assertArrayEquals(mockPdfData, (byte[]) response.getBody());
         verify(exportService).exportPdf(testData, testHeaders, "测试报表");
     }
 }

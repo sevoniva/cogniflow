@@ -1,14 +1,17 @@
 package com.chatbi.service;
 
+import com.chatbi.entity.Metric;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @Transactional
@@ -18,25 +21,32 @@ class BusinessInsightServiceTest {
     @Autowired
     private BusinessInsightService businessInsightService;
 
-    @ParameterizedTest(name = "{0} 指标查询应返回真实结果")
-    @CsvSource({
-        "销售额, 本月销售趋势",
-        "毛利率, 本月毛利率趋势",
-        "回款额, 本月回款额趋势",
-        "库存周转天数, 查看库存周转天数",
-        "订单履约率, 本月订单履约率趋势",
-        "部门费用支出, 本月部门费用支出趋势",
-        "项目交付及时率, 本月项目交付及时率趋势",
-        "客户投诉量, 本月客户投诉量趋势",
-        "研发工时利用率, 本月研发工时利用率趋势",
-        "审批平均时长, 本月审批平均时长趋势"
-    })
-    void queryMetricShouldExecuteOnH2(String metric, String queryText) {
-        BusinessInsightService.QueryPlan plan = businessInsightService.queryMetric(metric, queryText);
+    @Test
+    @DisplayName("queryMetric 应基于指标配置执行真实查询")
+    void queryMetricShouldExecuteOnH2() {
+        Metric metric = new Metric();
+        metric.setName("订单总量");
+        metric.setTableName("metrics");
+        metric.setColumnName("id");
+        metric.setAggregation("COUNT");
+        metric.setStatus("active");
+
+        BusinessInsightService.QueryPlan plan = businessInsightService.queryMetric(metric, "查询订单总量");
 
         assertNotNull(plan);
         assertNotNull(plan.getSql());
         assertNotNull(plan.getData());
-        assertFalse(plan.getData().isEmpty(), () -> metric + " 未返回任何数据");
+        assertFalse(plan.getData().isEmpty(), "订单总量 未返回任何数据");
+    }
+
+    @Test
+    @DisplayName("getOverviewRows 应基于真实 active 指标返回概览数据")
+    void getOverviewRowsShouldReturnRealDataFromActiveMetrics() {
+        var rows = businessInsightService.getOverviewRows();
+        assertNotNull(rows);
+        // test-data.sql 已预置 3 个带数据口径的 active 指标，概览应能查真实数据
+        assertFalse(rows.isEmpty(), "有 active 指标且配置了数据口径时应返回真实概览数据");
+        List<String> metrics = rows.stream().map(r -> (String) r.get("指标")).toList();
+        assertTrue(metrics.contains("销售额"), "概览应包含销售额");
     }
 }

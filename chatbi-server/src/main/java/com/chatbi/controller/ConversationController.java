@@ -234,13 +234,13 @@ public class ConversationController {
 
                 List<Map<String, Object>> overviewRows = safeOverviewRows();
                 List<String> fallbackSuggestions = getDefaultSuggestions();
-                String fallbackReply = "系统处理该问题时发生异常，已自动切换为经营总览，避免中断分析。你可以继续问："
+                String fallbackReply = "系统处理该问题时发生异常，已自动切换为数据概览，避免中断分析。你可以继续问："
                     + String.join("、", fallbackSuggestions);
 
                 Map<String, Object> metadata = new LinkedHashMap<>();
                 metadata.put("dataCount", overviewRows.size());
                 metadata.put("isFollowUp", false);
-                metadata.put("metricName", "经营概览");
+                metadata.put("metricName", "数据概览");
                 metadata.put("querySource", "guided-discovery");
                 metadata.put("chartType", "bar");
                 metadata.put("data", overviewRows);
@@ -251,7 +251,7 @@ public class ConversationController {
                 metadata.put("recoveredFromError", true);
                 metadata.put("diagnosis", createDiagnosis(
                     "CONVERSATION_EXCEPTION",
-                    "对话处理链路出现异常，已自动切换经营概览保护模式。",
+                    "对话处理链路出现异常，已自动切换数据概览保护模式。",
                     fallbackSuggestions,
                     true
                 ));
@@ -259,22 +259,22 @@ public class ConversationController {
                 conversationService.addAssistantMessage(
                     conversationId,
                     fallbackReply,
-                    "-- 对话链路异常，已降级为经营概览",
+                    "-- 对话链路异常，已降级为数据概览",
                     metadata
                 );
 
                 conversationService.updateContext(conversationId, "lastQuery", message);
-                conversationService.updateContext(conversationId, "lastSql", "-- 对话链路异常，已降级为经营概览");
+                conversationService.updateContext(conversationId, "lastSql", "-- 对话链路异常，已降级为数据概览");
                 conversationService.updateContext(conversationId, "lastDataCount", overviewRows.size());
 
                 Map<String, Object> recovered = new LinkedHashMap<>();
                 recovered.put("conversationId", conversationId);
                 recovered.put("message", fallbackReply);
-                recovered.put("sql", "-- 对话链路异常，已降级为经营概览");
+                recovered.put("sql", "-- 对话链路异常，已降级为数据概览");
                 recovered.put("data", overviewRows);
                 recovered.put("dataCount", overviewRows.size());
                 recovered.put("isFollowUp", false);
-                recovered.put("metric", "经营概览");
+                recovered.put("metric", "数据概览");
                 recovered.put("source", "guided-discovery");
                 recovered.put("suggestions", fallbackSuggestions);
                 recovered.put("candidateMetrics", List.of());
@@ -285,7 +285,7 @@ public class ConversationController {
                 recovered.put("recoverReason", e.getMessage());
                 recovered.put("diagnosis", createDiagnosis(
                     "CONVERSATION_EXCEPTION",
-                    "对话处理链路出现异常，已自动切换经营概览保护模式。",
+                    "对话处理链路出现异常，已自动切换数据概览保护模式。",
                     fallbackSuggestions,
                     true
                 ));
@@ -585,7 +585,7 @@ public class ConversationController {
 
     private String buildMetricInsightPrompt(String query, String metricName, List<Map<String, Object>> data, boolean isFollowUp) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("你是企业经营分析助手。请基于真实查询结果给出简洁专业的中文解读。");
+        prompt.append("你是数据分析助手。请基于真实查询结果给出简洁专业的中文解读。");
         prompt.append("要求：1）先给一句结论；2）再给2到3条关键发现；3）不要编造不存在的数据；4）控制在180字以内；5）不要输出SQL。");
         if (isFollowUp) {
             prompt.append("当前问题是追问，需要承接上下文。");
@@ -697,13 +697,7 @@ public class ConversationController {
      * 获取默认建议
      */
     private List<String> getDefaultSuggestions() {
-        return List.of(
-            "先给我一个经营总览",
-            "本月销售额是多少？",
-            "库存周转天数按仓库对比",
-            "上月审批平均时长是多少？",
-            "本季度客户投诉量按区域分布"
-        );
+        return List.of("先给我一个数据概览");
     }
 
     private List<Map<String, Object>> safeOverviewRows() {
@@ -713,14 +707,9 @@ public class ConversationController {
                 return rows;
             }
         } catch (Exception ex) {
-            log.warn("获取经营概览失败，使用本地兜底数据 - {}", ex.getMessage());
+            log.warn("获取数据概览失败 - {}", ex.getMessage());
         }
-        return List.of(
-            createOverviewRow("累计销售额", 568000, "元"),
-            createOverviewRow("活跃客户数", 212, "家"),
-            createOverviewRow("订单履约率", 96.2, "%"),
-            createOverviewRow("库存周转天数", 32, "天")
-        );
+        return List.of();
     }
 
     private Map<String, Object> createOverviewRow(String metric, Object value, String unit) {
@@ -752,7 +741,7 @@ public class ConversationController {
             Map<String, Object> metadata = new LinkedHashMap<>();
             metadata.put("dataCount", overviewRows.size());
             metadata.put("isFollowUp", false);
-            metadata.put("metricName", "经营概览");
+            metadata.put("metricName", "数据概览");
             metadata.put("querySource", "guided-recovery");
             metadata.put("chartType", "bar");
             metadata.put("data", overviewRows);
@@ -764,19 +753,19 @@ public class ConversationController {
             metadata.put("hardRecovered", true);
             metadata.put("diagnosis", createDiagnosis(
                 "CONVERSATION_HARD_RECOVERY",
-                "对话链路连续异常，已进入保护模式并返回兜底经营概览。",
+                "对话链路连续异常，已进入保护模式并返回兜底数据概览。",
                 fallbackSuggestions,
                 true
             ));
             enrichDiagnosisWithScenario(metadata.get("diagnosis"), message, List.of());
             conversationService.addAssistantMessage(
                 finalConversationId,
-                "系统已进入保护模式，已返回经营概览并保留可继续追问建议。",
-                "-- 对话链路二次恢复：返回本地兜底经营概览",
+                "系统已进入保护模式，已返回数据概览并保留可继续追问建议。",
+                "-- 对话链路二次恢复：返回本地兜底数据概览",
                 metadata
             );
             conversationService.updateContext(finalConversationId, "lastQuery", message);
-            conversationService.updateContext(finalConversationId, "lastSql", "-- 对话链路二次恢复：返回本地兜底经营概览");
+            conversationService.updateContext(finalConversationId, "lastSql", "-- 对话链路二次恢复：返回本地兜底数据概览");
             conversationService.updateContext(finalConversationId, "lastDataCount", overviewRows.size());
         } catch (Exception persistError) {
             log.warn("硬恢复持久化失败，继续返回可用响应 - conversationId: {}, error: {}", finalConversationId, persistError.getMessage());
@@ -784,12 +773,12 @@ public class ConversationController {
 
         Map<String, Object> recovered = new LinkedHashMap<>();
         recovered.put("conversationId", finalConversationId);
-        recovered.put("message", "系统已进入保护模式，已返回经营概览并保留可继续追问建议。你可以继续问：" + String.join("、", fallbackSuggestions));
-        recovered.put("sql", "-- 对话链路二次恢复：返回本地兜底经营概览");
+        recovered.put("message", "系统已进入保护模式，已返回数据概览并保留可继续追问建议。你可以继续问：" + String.join("、", fallbackSuggestions));
+        recovered.put("sql", "-- 对话链路二次恢复：返回本地兜底数据概览");
         recovered.put("data", overviewRows);
         recovered.put("dataCount", overviewRows.size());
         recovered.put("isFollowUp", false);
-        recovered.put("metric", "经营概览");
+        recovered.put("metric", "数据概览");
         recovered.put("source", "guided-recovery");
         recovered.put("suggestions", fallbackSuggestions);
         recovered.put("candidateMetrics", List.of());
@@ -803,7 +792,7 @@ public class ConversationController {
         recovered.put("userId", userId);
         recovered.put("diagnosis", createDiagnosis(
             "CONVERSATION_HARD_RECOVERY",
-            "对话链路连续异常，已进入保护模式并返回兜底经营概览。",
+            "对话链路连续异常，已进入保护模式并返回兜底数据概览。",
             fallbackSuggestions,
             true
         ));
@@ -918,7 +907,7 @@ public class ConversationController {
                     effectiveQuery = metric.getName() + " 和 " + secondaryMetric.getName() + " " + timeSegment + "对比 " + message;
                 }
             }
-            BusinessInsightService.QueryPlan plan = businessInsightService.queryMetric(metric.getName(), effectiveQuery);
+            BusinessInsightService.QueryPlan plan = businessInsightService.queryMetric(metric, effectiveQuery);
             Map<String, Object> diagnosis = contextMetricReused
                 ? createDiagnosis(
                     "CONTEXT_METRIC_REUSED",
@@ -965,7 +954,7 @@ public class ConversationController {
         }
 
         if (!aiConfig.isRuntimeEnabled()) {
-            return buildGuidedDiscovery(message, activeMetrics, synonyms, "当前未启用外部大模型，已切换为经营概览和指标引导");
+            return buildGuidedDiscovery(message, activeMetrics, synonyms, "当前未启用外部大模型，已切换为数据概览和指标引导");
         }
 
         String contextPrompt = conversationService.buildContextPrompt(conversationId);
@@ -978,7 +967,7 @@ public class ConversationController {
 
         List<AiQueryService.TableSchema> schemas = filterBusinessSchemas(queryExecutionService.extractTableSchemas(dataSource));
         if (schemas.isEmpty()) {
-            return buildGuidedDiscovery(message, activeMetrics, synonyms, "未发现可用于业务分析的数据表，已先返回经营总览");
+            return buildGuidedDiscovery(message, activeMetrics, synonyms, "未发现可用于业务分析的数据表，已先返回数据概览");
         }
 
         try {
@@ -1011,9 +1000,9 @@ public class ConversationController {
         } catch (Exception ex) {
             log.warn("对话外部大模型调用失败，降级为语义引导 - {}", ex.getMessage());
             if (overviewIntent) {
-                return buildGuidedDiscovery(message, activeMetrics, synonyms, "该问题暂未命中可执行业务查询，已返回经营总览并附可执行问法");
+                return buildGuidedDiscovery(message, activeMetrics, synonyms, "该问题暂未命中可执行业务查询，已返回数据概览并附可执行问法");
             }
-            return buildGuidedDiscovery(message, activeMetrics, synonyms, "外部大模型调用失败，已切换为经营概览和指标引导");
+            return buildGuidedDiscovery(message, activeMetrics, synonyms, "外部大模型调用失败，已切换为数据概览和指标引导");
         }
     }
 
@@ -1062,16 +1051,6 @@ public class ConversationController {
                     if (mapped != null) {
                         return mapped;
                     }
-                }
-            }
-        }
-
-        for (Map.Entry<String, List<String>> entry : METRIC_KEYWORDS.entrySet()) {
-            boolean matchedKeyword = entry.getValue().stream().anyMatch(keyword -> MetricSemanticMatcher.containsTerm(message, keyword));
-            if (matchedKeyword) {
-                Metric mapped = findMetricByName(activeMetrics, entry.getKey());
-                if (mapped != null) {
-                    return mapped;
                 }
             }
         }
@@ -1830,7 +1809,7 @@ public class ConversationController {
         if (isGreetingIntent(message)) {
             reply.append("我是 ChatBI。");
         } else if (isOverviewIntent(message)) {
-            reply.append("已先返回经营总览。");
+            reply.append("已先返回数据概览。");
         } else {
             reply.append(reason).append("。");
         }
@@ -1841,8 +1820,8 @@ public class ConversationController {
         }
 
         return new QueryExecution(
-            "经营概览",
-            "-- 未识别到明确业务指标，返回经营概览",
+            "数据概览",
+            "-- 未识别到明确业务指标，返回数据概览",
             businessInsightService.getOverviewRows(),
             "guided-discovery",
             reply.toString(),
@@ -1871,7 +1850,7 @@ public class ConversationController {
             + "你可以直接这样问：" + String.join("、", suggestions);
 
         return new QueryExecution(
-            "经营概览",
+            "数据概览",
             "-- 语义歧义澄清：检测到多个高相似指标",
             businessInsightService.getOverviewRows(),
             "guided-disambiguation",
@@ -1890,23 +1869,23 @@ public class ConversationController {
         try {
             reply = aiModelService.generateText(buildOverviewPrompt(message, overviewRows));
         } catch (Exception ex) {
-            log.warn("经营总览 AI 解读失败，降级为经营概览引导 - {}", ex.getMessage());
-            return buildGuidedDiscovery(message, metricMatchingService.getActiveMetrics(), metricMatchingService.getAllSynonyms(), "外部大模型生成经营摘要失败，已切换为经营概览");
+            log.warn("数据概览 AI 解读失败，降级为数据概览引导 - {}", ex.getMessage());
+            return buildGuidedDiscovery(message, metricMatchingService.getActiveMetrics(), metricMatchingService.getAllSynonyms(), "外部大模型生成数据摘要失败，已切换为数据概览");
         }
 
         return new QueryExecution(
-            "经营概览",
-            "-- 基于经营概览生成 AI 解读",
+            "数据概览",
+            "-- 基于数据概览生成 AI 解读",
             overviewRows,
             "llm",
             reply,
             "bar",
             getDefaultSuggestions(),
-            List.of("经营总览"),
+            List.of("数据概览"),
             false,
             createDiagnosis(
                 "OVERVIEW_AI_REPLY",
-                "已基于经营总览生成 AI 解读。",
+                "已基于数据概览生成 AI 解读。",
                 getDefaultSuggestions(),
                 false
             )
@@ -1915,10 +1894,10 @@ public class ConversationController {
 
     private String buildOverviewPrompt(String message, List<Map<String, Object>> overviewRows) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("你是企业经营分析助手。请基于以下真实经营指标，回答用户问题。");
+        prompt.append("你是数据分析助手。请基于以下真实数据指标，回答用户问题。");
         prompt.append("要求：1）只输出中文分析，不要输出SQL；2）先给出整体判断；3）再列出2到4条风险或机会；4）给出2条可继续追问的建议；5）控制在220字以内。\n\n");
         prompt.append("用户问题：").append(message).append("\n\n");
-        prompt.append("经营指标：\n");
+        prompt.append("数据指标：\n");
         for (Map<String, Object> row : overviewRows) {
             prompt.append("- ").append(row.get("指标")).append("：").append(row.get("数值")).append(row.get("单位")).append("\n");
         }
@@ -1983,11 +1962,6 @@ public class ConversationController {
                 score.score += 100;
                 score.directHits += 1;
             }
-            for (String keyword : METRIC_KEYWORDS.getOrDefault(metric.getName(), List.of())) {
-                if (MetricSemanticMatcher.containsTerm(message, keyword)) {
-                    score.score += 35;
-                }
-            }
             double fuzzySimilarity = MetricSemanticMatcher.similarity(message, metric.getName());
             score.similarity = Math.max(score.similarity, fuzzySimilarity);
             if (fuzzySimilarity >= 0.82) {
@@ -1996,8 +1970,9 @@ public class ConversationController {
                 score.score += (int) Math.round(fuzzySimilarity * 12);
             }
             if (metric.getDefinition() != null) {
-                for (String token : List.of("销售", "毛利", "利润", "回款", "库存", "履约", "交付", "投诉", "工时", "研发", "费用", "审批", "时长")) {
-                    if (MetricSemanticMatcher.containsTerm(message, token) && metric.getDefinition().contains(token)) {
+                String[] queryTokens = message.split("[^\\u4e00-\\u9fa5a-zA-Z0-9]+");
+                for (String token : queryTokens) {
+                    if (token.length() >= 2 && metric.getDefinition().contains(token)) {
                         score.score += 20;
                     }
                 }
@@ -2120,10 +2095,8 @@ public class ConversationController {
             "情况", "如何", "怎么样", "咋样", "咋回事", "行不行", "盘下"
         );
         boolean actionHit = actionHints.stream().anyMatch(hint -> MetricSemanticMatcher.containsTerm(message, hint));
-        boolean metricHint = METRIC_KEYWORDS.getOrDefault(metric.getName(), List.of(metric.getName()))
-            .stream()
-            .anyMatch(keyword -> MetricSemanticMatcher.containsTerm(message, keyword));
-        return actionHit || metricHint;
+        boolean metricNameHit = metric.getName() != null && MetricSemanticMatcher.containsTerm(message, metric.getName());
+        return actionHit || metricNameHit;
     }
 
     private Metric findMetricByName(List<Metric> metrics, String name) {
@@ -2163,19 +2136,7 @@ public class ConversationController {
         if (containsAny(message, List.of("占比", "构成", "结构"))) {
             return timePrefix + metric + "占比如何？";
         }
-        return switch (metric) {
-            case "销售额" -> timePrefix + "销售额是多少？";
-            case "毛利率" -> timePrefix + "毛利率趋势如何？";
-            case "回款额" -> timePrefix + "回款额是多少？";
-            case "库存周转天数" -> "库存周转天数按仓库对比";
-            case "订单履约率" -> timePrefix + "订单履约率如何？";
-            case "项目交付及时率" -> "上季度项目交付及时率";
-            case "客户投诉量" -> "本季度客户投诉量按区域分布";
-            case "研发工时利用率" -> "研发工时利用率按团队对比";
-            case "部门费用支出" -> timePrefix + "部门费用支出按部门对比";
-            case "审批平均时长" -> "上月审批平均时长是多少？";
-            default -> timePrefix + metric;
-        };
+        return timePrefix + metric + "是多少？";
     }
 
     private String inferTimePrefix(String message, String metric) {
@@ -2209,61 +2170,28 @@ public class ConversationController {
         if (containsAny(message, List.of("本月", "当月"))) {
             return "本月";
         }
-        if ("项目交付及时率".equals(metric) || "客户投诉量".equals(metric)) {
-            return "本季度";
-        }
         return "本月";
     }
 
     private List<String> inferFallbackMetrics(String message) {
-        if (containsAny(message, List.of("研发", "交付", "上线", "迭代", "项目"))) {
-            return List.of("研发工时利用率", "项目交付及时率", "审批平均时长");
+        List<Metric> activeMetrics = metricMatchingService.getActiveMetrics();
+        if (activeMetrics == null || activeMetrics.isEmpty()) {
+            return List.of();
         }
-        if (containsAny(message, List.of("客户", "客诉", "投诉", "体验", "留存"))) {
-            return List.of("客户投诉量", "订单履约率", "回款额");
-        }
-        if (containsAny(message, List.of("成本", "费用", "支出", "预算"))) {
-            return List.of("部门费用支出", "毛利率", "库存周转天数");
-        }
-        return List.of("销售额", "毛利率", "库存周转天数");
+        return activeMetrics.stream()
+            .map(Metric::getName)
+            .filter(name -> name != null && !name.isBlank())
+            .distinct()
+            .limit(3)
+            .toList();
     }
 
     private String detectGuidanceScenario(String message, List<String> candidateMetrics) {
-        if (containsAny(message, List.of("研发", "交付", "上线", "迭代", "项目"))) {
-            return "研发效能场景";
-        }
-        if (containsAny(message, List.of("客户", "客诉", "投诉", "体验", "留存"))) {
-            return "客户经营场景";
-        }
-        if (containsAny(message, List.of("成本", "费用", "支出", "预算"))) {
-            return "成本管控场景";
-        }
-        List<String> metrics = candidateMetrics == null ? List.of() : candidateMetrics;
-        if (metrics.stream().anyMatch(metric -> metric != null && metric.contains("研发"))) {
-            return "研发效能场景";
-        }
-        if (metrics.stream().anyMatch(metric -> metric != null && (metric.contains("客户") || metric.contains("投诉") || metric.contains("履约")))) {
-            return "客户经营场景";
-        }
-        if (metrics.stream().anyMatch(metric -> metric != null && (metric.contains("费用") || metric.contains("毛利") || metric.contains("库存")))) {
-            return "成本管控场景";
-        }
-        return "综合经营场景";
+        return "综合分析场景";
     }
 
     private static Map<String, List<String>> createMetricKeywords() {
-        Map<String, List<String>> keywordMap = new LinkedHashMap<>();
-        keywordMap.put("销售额", List.of("销售额", "销售", "营收", "收入", "营业额", "销售收入", "业绩", "revenue", "sales"));
-        keywordMap.put("毛利率", List.of("毛利率", "毛利", "利润率", "利润", "盈利", "grossmargin", "margin", "profitmargin"));
-        keywordMap.put("回款额", List.of("回款额", "回款", "到账", "收款", "现金回笼", "cashcollection", "collection"));
-        keywordMap.put("库存周转天数", List.of("库存周转天数", "库存周转", "库存", "周转天数", "库存效率", "inventoryturnover", "inventory"));
-        keywordMap.put("订单履约率", List.of("订单履约率", "履约率", "履约", "交付履约", "按时履约", "fulfillmentrate", "fulfillment"));
-        keywordMap.put("项目交付及时率", List.of("项目交付及时率", "交付及时率", "交付率", "项目交付", "交付效率", "ontimedelivery", "deliveryrate"));
-        keywordMap.put("客户投诉量", List.of("客户投诉量", "投诉", "客诉", "投诉量", "客户体验", "complaint", "complaints"));
-        keywordMap.put("研发工时利用率", List.of("研发工时利用率", "工时", "工时利用率", "研发", "研发效率", "研发产能", "rdutilization", "utilization"));
-        keywordMap.put("部门费用支出", List.of("部门费用支出", "费用", "支出", "成本", "开销", "花费", "expense", "cost"));
-        keywordMap.put("审批平均时长", List.of("审批平均时长", "审批", "审批效率", "审批时长", "审批时效", "流程效率", "approvaltime", "workflow"));
-        return keywordMap;
+        return new LinkedHashMap<>();
     }
 
     private boolean isGreetingIntent(String message) {
@@ -2272,7 +2200,7 @@ public class ConversationController {
 
     private boolean isOverviewIntent(String message) {
         return containsAny(message, List.of(
-            "经营总览",
+            "数据概览",
             "经营情况",
             "业务情况",
             "整体情况",

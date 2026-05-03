@@ -85,7 +85,7 @@ public class QueryController {
             if (activeMetrics.isEmpty()) {
                 QueryResult recovered = buildGuidedOverviewResult(
                     text,
-                    "当前无可用指标，已自动返回经营总览。请先在管理后台配置指标后继续查询。",
+                    "当前无可用指标，已自动返回数据概览。请先在管理后台配置指标后继续查询。",
                     List.of(),
                     false,
                     "guided-discovery",
@@ -93,7 +93,7 @@ public class QueryController {
                     aiStatus
                 );
                 attachDiagnosis(recovered, "NO_ACTIVE_METRICS",
-                    "当前未配置可用业务指标，已切换到经营总览。",
+                    "当前未配置可用业务指标，已切换到数据概览。",
                     List.of("进入管理后台新增指标", "配置指标同义词", "返回后重试查询"), true);
                 saveSuccessHistory(text, userId, 1L, recovered.getData(), System.currentTimeMillis() - startTime);
                 return Result.ok(recovered);
@@ -107,9 +107,9 @@ public class QueryController {
             if (metricMatch.ambiguous()) {
                 List<String> disambiguationSuggestions = buildDisambiguationSuggestions(text, candidateMetrics);
                 QueryResult disambiguationResult = enrichResult(
-                    buildOverviewResult(text, "识别到多个可能指标，先返回经营总览并等待用户澄清"),
+                    buildOverviewResult(text, "识别到多个可能指标，先返回数据概览并等待用户澄清"),
                     text,
-                    "经营总览",
+                    "数据概览",
                     false
                 );
                 disambiguationResult.setSource("guided-disambiguation");
@@ -146,7 +146,7 @@ public class QueryController {
                 List<String> guidedSuggestions = buildGuidedSuggestions(text, candidateMetrics);
                 QueryResult result = buildGuidedOverviewResult(
                     text,
-                    "当前未识别到明确指标，先返回经营总览，建议使用 AI 对话继续追问",
+                    "当前未识别到明确指标，先返回数据概览，建议使用 AI 对话继续追问",
                     guidedSuggestions,
                     !candidateMetrics.isEmpty(),
                     "guided-discovery",
@@ -155,7 +155,7 @@ public class QueryController {
                 );
                 result.setCandidateMetrics(candidateMetrics);
                 attachDiagnosis(result, "METRIC_NOT_RECOGNIZED",
-                    "未识别到可直接查询的业务指标，已返回经营总览。",
+                    "未识别到可直接查询的业务指标，已返回数据概览。",
                     result.getSuggestions(), true);
                 saveSuccessHistory(text, userId, dataSource != null ? dataSource.getId() : 1L, result.getData(), System.currentTimeMillis() - startTime);
                 return Result.ok(result);
@@ -165,7 +165,7 @@ public class QueryController {
             if (dataSource == null) {
                 QueryResult recovered = buildGuidedOverviewResult(
                     text,
-                    "当前未配置可用数据源，已返回经营总览。请在管理后台完成数据源配置。",
+                    "当前未配置可用数据源，已返回数据概览。请在管理后台完成数据源配置。",
                     buildGuidedSuggestions(text, candidateMetrics),
                     false,
                     "guided-recovery",
@@ -174,7 +174,7 @@ public class QueryController {
                 );
                 recovered.setCandidateMetrics(candidateMetrics);
                 attachDiagnosis(recovered, "DATASOURCE_UNAVAILABLE",
-                    "查询数据源不可用，已自动降级为经营总览。",
+                    "查询数据源不可用，已自动降级为数据概览。",
                     List.of("检查数据源连接", "确认数据源账号权限", "完成配置后重试"), true);
                 saveSuccessHistory(text, userId, 1L, recovered.getData(), System.currentTimeMillis() - startTime);
                 return Result.ok(recovered);
@@ -185,7 +185,7 @@ public class QueryController {
             if (schemas.isEmpty()) {
                 QueryResult recovered = buildGuidedOverviewResult(
                     text,
-                    "当前数据源未发现可查询业务表，已返回经营总览。请在管理后台检查数据源元数据。",
+                    "当前数据源未发现可查询业务表，已返回数据概览。请在管理后台检查数据源元数据。",
                     buildGuidedSuggestions(text, candidateMetrics),
                     false,
                     "guided-recovery",
@@ -194,7 +194,7 @@ public class QueryController {
                 );
                 recovered.setCandidateMetrics(candidateMetrics);
                 attachDiagnosis(recovered, "NO_BUSINESS_TABLE",
-                    "数据源未发现可用业务表，已自动降级为经营总览。",
+                    "数据源未发现可用业务表，已自动降级为数据概览。",
                     List.of("同步数据源元数据", "确认业务表是否存在", "检查表权限后重试"), true);
                 saveSuccessHistory(text, userId, dataSource.getId(), recovered.getData(), System.currentTimeMillis() - startTime);
                 return Result.ok(recovered);
@@ -209,7 +209,7 @@ public class QueryController {
                 log.warn("AI生成SQL失败，使用规则引擎降级 - {}", e.getMessage());
                 QueryResult result = buildGuidedOverviewResult(
                     text,
-                    "外部大模型暂不可用，已切换为经营总览",
+                    "外部大模型暂不可用，已切换为数据概览",
                     buildGuidedSuggestions(text, candidateMetrics),
                     false,
                     "guided-recovery",
@@ -227,7 +227,7 @@ public class QueryController {
             // 5. 验证SQL安全性
             QueryGovernanceService.ValidationResult validation = aiQueryService.validateSqlDetail(sql);
             if (!validation.valid()) {
-                log.warn("SQL治理校验未通过，降级返回经营总览 - query: {}, reason: {}", text, validation.message());
+                log.warn("SQL治理校验未通过，降级返回数据概览 - query: {}, reason: {}", text, validation.message());
                 recordAccessAlertSafely(
                     userId,
                     "user-" + userId,
@@ -238,7 +238,7 @@ public class QueryController {
                 );
                 QueryResult recovered = buildGuidedOverviewResult(
                     text,
-                    "查询语句未通过治理校验，已自动切换为经营总览。你可以明确业务指标后重试。",
+                    "查询语句未通过治理校验，已自动切换为数据概览。你可以明确业务指标后重试。",
                     buildGuidedSuggestions(text, candidateMetrics),
                     false,
                     "guided-recovery",
@@ -247,7 +247,7 @@ public class QueryController {
                 );
                 recovered.setCandidateMetrics(candidateMetrics);
                 attachDiagnosis(recovered, "SQL_GOVERNANCE_BLOCKED",
-                    "生成 SQL 未通过安全治理校验，系统已阻断并返回经营总览。",
+                    "生成 SQL 未通过安全治理校验，系统已阻断并返回数据概览。",
                     List.of("补充明确业务指标", "补充时间范围或维度", "在 AI 对话中继续追问"), true);
                 saveSuccessHistory(text, userId, dataSource.getId(), recovered.getData(), System.currentTimeMillis() - startTime);
                 return Result.ok(recovered);
@@ -297,15 +297,15 @@ public class QueryController {
                 List<String> candidateMetrics = recommendMetricNames(text, activeMetrics, synonyms);
                 List<String> guidedSuggestions = buildGuidedSuggestions(text, candidateMetrics);
 
-                QueryResult recovered = buildOverviewResult(text, "查询链路异常，已自动降级为经营总览");
+                QueryResult recovered = buildOverviewResult(text, "查询链路异常，已自动降级为数据概览");
                 recovered.setSource("guided-recovery");
-                recovered = enrichResult(recovered, text, "经营总览", false);
+                recovered = enrichResult(recovered, text, "数据概览", false);
                 recovered.setSuggestions(guidedSuggestions);
                 recovered.setCandidateMetrics(candidateMetrics);
                 recovered.setDisambiguation(false);
                 recovered.setAiStatus(buildAiStatus());
                 attachDiagnosis(recovered, "QUERY_CHAIN_EXCEPTION",
-                    "查询链路出现异常，已切换经营总览保护模式。",
+                    "查询链路出现异常，已切换数据概览保护模式。",
                     guidedSuggestions, true);
                 if (!candidateMetrics.isEmpty()) {
                     recovered.setSummary(trimSummary(recovered.getSummary() + " 可直接查询指标：" + String.join("、", candidateMetrics) + "。"));
@@ -434,7 +434,7 @@ public class QueryController {
     @GetMapping("/examples")
     public Result<List<String>> getExamples() {
         return Result.ok(List.of(
-            "先给我一个经营总览",
+            "先给我一个数据概览",
             "本月销售额是多少？",
             "库存周转天数按仓库对比",
             "本季度客户投诉量按区域分布",
@@ -465,17 +465,6 @@ public class QueryController {
                     if (mapped != null) {
                         return mapped;
                     }
-                }
-            }
-        }
-
-        // 3. 硬编码关键词匹配（兜底）
-        for (Map.Entry<String, List<String>> entry : METRIC_KEYWORDS.entrySet()) {
-            boolean matchedKeyword = entry.getValue().stream().anyMatch(keyword -> MetricSemanticMatcher.containsTerm(query, keyword));
-            if (matchedKeyword) {
-                Metric mapped = findMetricByName(metrics, entry.getKey());
-                if (mapped != null) {
-                    return mapped;
                 }
             }
         }
@@ -522,11 +511,6 @@ public class QueryController {
                 score.score += 100;
                 score.directHits += 1;
             }
-            for (String keyword : METRIC_KEYWORDS.getOrDefault(metric.getName(), List.of())) {
-                if (MetricSemanticMatcher.containsTerm(query, keyword)) {
-                    score.score += 36;
-                }
-            }
             double fuzzy = MetricSemanticMatcher.similarity(query, metric.getName());
             score.similarity = Math.max(score.similarity, fuzzy);
             if (fuzzy >= 0.82) {
@@ -535,8 +519,10 @@ public class QueryController {
                 score.score += (int) Math.round(fuzzy * 12);
             }
             if (metric.getDefinition() != null) {
-                for (String token : List.of("销售", "毛利", "利润", "回款", "库存", "履约", "交付", "投诉", "工时", "研发", "费用", "审批", "时长")) {
-                    if (MetricSemanticMatcher.containsTerm(query, token) && metric.getDefinition().contains(token)) {
+                // 通用化：查询词与指标定义中的词汇重叠即加分
+                String[] queryTokens = query.split("[^\\u4e00-\\u9fa5a-zA-Z0-9]+");
+                for (String token : queryTokens) {
+                    if (token.length() >= 2 && metric.getDefinition().contains(token)) {
                         score.score += 20;
                     }
                 }
@@ -650,10 +636,8 @@ public class QueryController {
             "情况", "如何", "怎么样", "咋样", "咋回事", "行不行", "盘下"
         );
         boolean actionHit = actionHints.stream().anyMatch(item -> MetricSemanticMatcher.containsTerm(query, item));
-        boolean metricHint = METRIC_KEYWORDS.getOrDefault(metric.getName(), List.of(metric.getName()))
-            .stream()
-            .anyMatch(item -> MetricSemanticMatcher.containsTerm(query, item));
-        return actionHit || metricHint;
+        boolean metricNameHit = metric.getName() != null && MetricSemanticMatcher.containsTerm(query, metric.getName());
+        return actionHit || metricNameHit;
     }
 
     private Metric findMetricByName(List<Metric> metrics, String metricName) {
@@ -668,18 +652,8 @@ public class QueryController {
     }
 
     private static Map<String, List<String>> createMetricKeywords() {
-        Map<String, List<String>> keywordMap = new LinkedHashMap<>();
-        keywordMap.put("销售额", List.of("销售额", "销售", "营收", "收入", "营业额", "销售收入", "业绩", "revenue", "sales"));
-        keywordMap.put("毛利率", List.of("毛利率", "毛利", "利润率", "利润", "盈利", "grossmargin", "margin", "profitmargin"));
-        keywordMap.put("回款额", List.of("回款额", "回款", "到账", "收款", "现金回笼", "cashcollection", "collection"));
-        keywordMap.put("库存周转天数", List.of("库存周转天数", "库存周转", "库存", "周转天数", "库存效率", "inventoryturnover", "inventory"));
-        keywordMap.put("订单履约率", List.of("订单履约率", "履约率", "履约", "交付履约", "按时履约", "fulfillmentrate", "fulfillment"));
-        keywordMap.put("项目交付及时率", List.of("项目交付及时率", "交付及时率", "交付率", "项目交付", "交付效率", "ontimedelivery", "deliveryrate"));
-        keywordMap.put("客户投诉量", List.of("客户投诉量", "投诉", "客诉", "投诉量", "客户体验", "complaint", "complaints"));
-        keywordMap.put("研发工时利用率", List.of("研发工时利用率", "工时", "工时利用率", "研发", "研发效率", "研发产能", "rdutilization", "utilization"));
-        keywordMap.put("部门费用支出", List.of("部门费用支出", "费用", "支出", "成本", "开销", "花费", "expense", "cost"));
-        keywordMap.put("审批平均时长", List.of("审批平均时长", "审批", "审批效率", "审批时长", "审批时效", "流程效率", "approvaltime", "workflow"));
-        return keywordMap;
+        // 通用化：不再硬编码任何业务指标关键词，仅保留空 Map 以兼容旧接口
+        return new LinkedHashMap<>();
     }
 
     private List<String> recommendMetricNames(String query, List<Metric> metrics, List<Synonym> synonyms) {
@@ -728,7 +702,7 @@ public class QueryController {
 
     private List<String> buildGuidedSuggestions(String query, List<String> candidateMetrics) {
         if (isGreetingIntent(query) || isOverviewIntent(query)) {
-            return List.of("先给我一个经营总览", "本月销售额是多少？", "库存周转天数按仓库对比");
+            return List.of("先给我一个数据概览", "本月销售额是多少？", "库存周转天数按仓库对比");
         }
         if (candidateMetrics == null || candidateMetrics.isEmpty()) {
             return inferFallbackMetrics(query).stream()
@@ -756,19 +730,7 @@ public class QueryController {
         if (containsAny(query, List.of("占比", "构成", "结构"))) {
             return timePrefix + metric + "占比如何？";
         }
-        return switch (metric) {
-            case "销售额" -> timePrefix + "销售额是多少？";
-            case "毛利率" -> timePrefix + "毛利率趋势如何？";
-            case "回款额" -> timePrefix + "回款额是多少？";
-            case "库存周转天数" -> "库存周转天数按仓库对比";
-            case "订单履约率" -> timePrefix + "订单履约率如何？";
-            case "项目交付及时率" -> "上季度项目交付及时率";
-            case "客户投诉量" -> "本季度客户投诉量按区域分布";
-            case "研发工时利用率" -> "研发工时利用率按团队对比";
-            case "部门费用支出" -> timePrefix + "部门费用支出按部门对比";
-            case "审批平均时长" -> "上月审批平均时长是多少？";
-            default -> timePrefix + metric;
-        };
+        return timePrefix + metric + "是多少？";
     }
 
     private String inferTimePrefix(String query, String metric) {
@@ -802,51 +764,29 @@ public class QueryController {
         if (containsAny(query, List.of("本月", "当月"))) {
             return "本月";
         }
-        if ("项目交付及时率".equals(metric) || "客户投诉量".equals(metric)) {
-            return "本季度";
-        }
         return "本月";
     }
 
     private List<String> inferFallbackMetrics(String query) {
-        if (containsAny(query, List.of("研发", "交付", "上线", "迭代", "项目"))) {
-            return List.of("研发工时利用率", "项目交付及时率", "审批平均时长");
+        List<Metric> activeMetrics = metricMatchingService.getActiveMetrics();
+        if (activeMetrics == null || activeMetrics.isEmpty()) {
+            return List.of();
         }
-        if (containsAny(query, List.of("客户", "客诉", "投诉", "体验", "留存"))) {
-            return List.of("客户投诉量", "订单履约率", "回款额");
-        }
-        if (containsAny(query, List.of("成本", "费用", "支出", "预算"))) {
-            return List.of("部门费用支出", "毛利率", "库存周转天数");
-        }
-        return List.of("销售额", "毛利率", "库存周转天数");
+        return activeMetrics.stream()
+            .map(Metric::getName)
+            .filter(name -> name != null && !name.isBlank())
+            .distinct()
+            .limit(3)
+            .toList();
     }
 
     private String detectGuidanceScenario(String query, List<String> candidateMetrics) {
-        if (containsAny(query, List.of("研发", "交付", "上线", "迭代", "项目"))) {
-            return "研发效能场景";
-        }
-        if (containsAny(query, List.of("客户", "客诉", "投诉", "体验", "留存"))) {
-            return "客户经营场景";
-        }
-        if (containsAny(query, List.of("成本", "费用", "支出", "预算"))) {
-            return "成本管控场景";
-        }
-        List<String> metrics = candidateMetrics == null ? List.of() : candidateMetrics;
-        if (metrics.stream().anyMatch(metric -> metric != null && metric.contains("研发"))) {
-            return "研发效能场景";
-        }
-        if (metrics.stream().anyMatch(metric -> metric != null && (metric.contains("客户") || metric.contains("投诉") || metric.contains("履约")))) {
-            return "客户经营场景";
-        }
-        if (metrics.stream().anyMatch(metric -> metric != null && (metric.contains("费用") || metric.contains("毛利") || metric.contains("库存")))) {
-            return "成本管控场景";
-        }
-        return "综合经营场景";
+        return "综合分析场景";
     }
 
     private boolean isOverviewIntent(String query) {
         return containsAny(query, List.of(
-                "经营总览",
+                "数据概览",
                 "经营情况",
                 "业务情况",
                 "整体情况",
@@ -873,7 +813,7 @@ public class QueryController {
     }
 
     private QueryResult buildMetricResult(String text, Metric matched) {
-        BusinessInsightService.QueryPlan plan = businessInsightService.queryMetric(matched.getName(), text);
+        BusinessInsightService.QueryPlan plan = businessInsightService.queryMetric(matched, text);
         return QueryResult.builder()
             .query(text)
             .sql(plan.getSql())
@@ -891,7 +831,7 @@ public class QueryController {
         return QueryResult.builder()
             .query(text)
             .sql("-- " + reason)
-            .metric("经营总览")
+            .metric("数据概览")
             .timeRange("当前概览")
             .dimension("指标")
             .total(overview.size())
@@ -907,14 +847,9 @@ public class QueryController {
                 return rows;
             }
         } catch (Exception ex) {
-            log.warn("获取经营总览失败，使用本地兜底数据 - {}", ex.getMessage());
+            log.warn("获取数据概览失败 - {}", ex.getMessage());
         }
-        return List.of(
-            createOverviewRow("累计销售额", 568000, "元"),
-            createOverviewRow("活跃客户数", 212, "家"),
-            createOverviewRow("订单履约率", 96.2, "%"),
-            createOverviewRow("库存周转天数", 32, "天")
-        );
+        return List.of();
     }
 
     private Map<String, Object> createOverviewRow(String metric, Object value, String unit) {
@@ -937,12 +872,12 @@ public class QueryController {
         QueryResult result = enrichResult(
             buildOverviewResult(text, reason),
             text,
-            "经营总览",
+            "数据概览",
             allowAiSummary
         );
         result.setSource(source);
         result.setSuggestions(suggestions == null || suggestions.isEmpty()
-            ? List.of("先给我一个经营总览", "本月销售额是多少？", "库存周转天数按仓库对比")
+            ? List.of("先给我一个数据概览")
             : suggestions);
         result.setDisambiguation(disambiguation);
         result.setAiStatus(aiStatus);
@@ -1047,21 +982,21 @@ public class QueryController {
     private QueryResult buildEmergencyRecoveryResult(String text, Exception rootError, Exception recoverError) {
         QueryResult recovered = QueryResult.builder()
             .query(text)
-            .sql("-- 查询链路二次恢复：返回本地兜底经营概览")
-            .metric("经营总览")
+            .sql("-- 查询链路二次恢复：返回空结果")
+            .metric("数据概览")
             .timeRange("当前概览")
             .dimension("指标")
             .total(0)
-            .data(safeOverviewRows())
+            .data(List.of())
             .source("guided-recovery")
             .build();
 
-        recovered = enrichResult(recovered, text, "经营总览", false);
-        recovered.setSuggestions(List.of("先给我一个经营总览", "本月销售额是多少？", "库存周转天数按仓库对比"));
+        recovered = enrichResult(recovered, text, "数据概览", false);
+        recovered.setSuggestions(List.of("先给我一个数据概览"));
         recovered.setCandidateMetrics(List.of());
         recovered.setDisambiguation(false);
         attachDiagnosis(recovered, "EMERGENCY_RECOVERY",
-            "查询链路出现连续异常，已进入保护模式并返回兜底经营总览。",
+            "查询链路出现连续异常，已进入保护模式。",
             recovered.getSuggestions(), true);
 
         Map<String, Object> aiStatus = new LinkedHashMap<>(buildAiStatus());
@@ -1069,7 +1004,7 @@ public class QueryController {
         aiStatus.put("recoverReason", rootError.getMessage());
         aiStatus.put("recoverFallbackReason", recoverError.getMessage());
         recovered.setAiStatus(aiStatus);
-        recovered.setSummary(trimSummary("查询链路出现异常，系统已自动切换保护模式并返回经营总览。你可以继续追问具体指标。"));
+        recovered.setSummary(trimSummary("查询链路出现异常，系统已自动切换保护模式并返回数据概览。你可以继续追问具体指标。"));
         recovered.setTotal(recovered.getData() == null ? 0 : recovered.getData().size());
         return recovered;
     }
@@ -1112,13 +1047,13 @@ public class QueryController {
             return "未查询到符合条件的数据，建议调整时间范围、指标名称或筛选维度后重试。";
         }
 
-        if ("经营总览".equals(metricName) || "经营总览".equals(result.getMetric())) {
+        if ("数据概览".equals(metricName) || "数据概览".equals(result.getMetric())) {
             String highlights = rows.stream()
                 .limit(3)
                 .map(this::formatOverviewHighlight)
                 .reduce((left, right) -> left + "，" + right)
                 .orElse("已返回最新经营指标");
-            return "已返回最新经营总览，" + highlights + "。如需定位原因，可继续追问区域、部门或趋势变化。";
+            return "已返回最新数据概览，" + highlights + "。如需定位原因，可继续追问区域、部门或趋势变化。";
         }
 
         String valueField = findPrimaryValueField(rows);
@@ -1163,7 +1098,7 @@ public class QueryController {
     }
 
     private List<String> buildSuggestions(String metricName) {
-        String target = metricName == null || metricName.isBlank() ? "经营总览" : metricName;
+        String target = metricName == null || metricName.isBlank() ? "数据概览" : metricName;
         return switch (target) {
             case "销售额" -> List.of("按区域拆解本月销售额", "本月销售额趋势如何？", "销售额和毛利率一起分析");
             case "毛利率" -> List.of("毛利率按区域对比", "毛利率趋势如何？", "哪个产品类别毛利率最高？");
@@ -1175,7 +1110,7 @@ public class QueryController {
             case "研发工时利用率" -> List.of("研发工时利用率按团队对比", "研发工时利用率趋势", "哪个成员利用率最高");
             case "部门费用支出" -> List.of("部门费用支出按部门对比", "费用支出趋势如何？", "费用异常最高的部门");
             case "审批平均时长" -> List.of("审批平均时长按部门拆解", "审批平均时长趋势", "哪个流程审批最慢");
-            default -> List.of("先给我一个经营总览", "本月销售额是多少？", "库存周转天数按仓库对比");
+            default -> List.of("先给我一个数据概览", "本月销售额是多少？", "库存周转天数按仓库对比");
         };
     }
 

@@ -46,7 +46,7 @@
               <el-input
                 v-model="queryText"
                 class="search-input"
-                placeholder="例如：本月华东大区销售额与毛利率趋势"
+                placeholder="例如：本月核心指标趋势分析"
                 maxlength="100"
                 clearable
                 size="large"
@@ -112,19 +112,19 @@
             <el-tag size="small" type="primary" effect="plain">4 套</el-tag>
           </div>
           <div class="scenario-list">
-            <button class="scenario-item" type="button" @click="queryText = '本月销售额、毛利率、回款额综合分析'">
+            <button class="scenario-item" type="button" @click="queryText = '本月核心指标综合分析'">
               <strong>经营日报</strong>
               <span>适合总览销售、利润、回款进度与异常波动。</span>
             </button>
-            <button class="scenario-item" type="button" @click="queryText = '本季度客户投诉量按区域分布及环比变化'">
+            <button class="scenario-item" type="button" @click="queryText = '本季度核心数据按维度分布及环比变化'">
               <strong>客户体验</strong>
               <span>聚焦投诉热点、区域波动与主要问题归因。</span>
             </button>
-            <button class="scenario-item" type="button" @click="queryText = '研发工时利用率按团队对比并输出效率排名'">
+            <button class="scenario-item" type="button" @click="queryText = '核心指标按团队对比并输出排名'">
               <strong>研发效能</strong>
               <span>适合观察团队产能与资源利用率。</span>
             </button>
-            <button class="scenario-item" type="button" @click="queryText = '审批平均时长按部门拆解并标记风险流程'">
+            <button class="scenario-item" type="button" @click="queryText = '核心指标按部门拆解并标记异常流程'">
               <strong>流程治理</strong>
               <span>用于识别流程堵点、审批时效风险和责任部门。</span>
             </button>
@@ -281,7 +281,7 @@ const aiStatus = ref<AiRuntimeStatus>({
 })
 
 const examples = [
-  '先给我一个经营总览',
+  '先给我一个数据概览',
   '本月销售额是多少？',
   '库存周转天数按仓库对比',
   '本季度客户投诉量按区域分布'

@@ -135,16 +135,7 @@ public final class MetricSemanticMatcher {
 
     private static Map<String, String> buildTypoCorrections() {
         Map<String, String> corrections = new LinkedHashMap<>();
-        corrections.put("销受额", "销售额");
-        corrections.put("销瘦额", "销售额");
-        corrections.put("消售额", "销售额");
-        corrections.put("营页额", "营业额");
-        corrections.put("毛利律", "毛利率");
-        corrections.put("毛力率", "毛利率");
-        corrections.put("回宽额", "回款额");
-        corrections.put("回筐额", "回款额");
-        corrections.put("库寸周转", "库存周转");
-        corrections.put("履约绿", "履约率");
+        // 通用英文拼写纠正（与业务无关）
         corrections.put("revennue", "revenue");
         corrections.put("reveune", "revenue");
         corrections.put("margn", "margin");

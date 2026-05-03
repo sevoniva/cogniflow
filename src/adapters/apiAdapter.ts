@@ -515,7 +515,7 @@ export const apiAdminService: IAdminService = {
     }
 
     const nextStatus = Number(current.data.status ?? 1) === 1 ? 0 : 1
-    return this.updateSubscription(id, { status: nextStatus })
+    return apiAdminService.updateSubscription(id, { status: nextStatus })
   },
 
   async getShares(): Promise<Share[]> {
@@ -575,7 +575,7 @@ export const apiAdminService: IAdminService = {
     }
 
     const nextStatus = Number(current.data.status ?? 1) === 1 ? 0 : 1
-    return this.updateShare(id, { status: nextStatus })
+    return apiAdminService.updateShare(id, { status: nextStatus })
   },
 
   async getRuleTemplates(): Promise<RuleTemplate[]> {

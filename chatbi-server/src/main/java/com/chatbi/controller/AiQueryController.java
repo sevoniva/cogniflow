@@ -185,67 +185,17 @@ public class AiQueryController {
     }
 
     private QueryResponse buildFallbackResponse(String question, String message, String recoverReason, Long datasourceId, Long userId) {
-        com.chatbi.entity.DataSource dataSource = resolveDatasource(datasourceId);
-        List<Map<String, Object>> overviewRows = safeOverviewRows(dataSource, userId);
         return QueryResponse.builder()
             .question(question)
-            .generatedSql("-- AI 查询降级：返回经营总览")
-            .data(overviewRows)
+            .generatedSql("-- AI 查询降级：未生成有效 SQL")
+            .data(List.of())
             .success(true)
             .source("guided-recovery")
             .recovered(true)
             .recoverReason(recoverReason)
-            .suggestions(defaultSuggestions())
+            .suggestions(List.of("先给我一个数据概览"))
             .message(message)
             .build();
-    }
-
-    private List<Map<String, Object>> safeOverviewRows(com.chatbi.entity.DataSource dataSource, Long userId) {
-        if (dataSource != null) {
-            try {
-                List<Map<String, Object>> rows = queryExecutionService.executeQuery(
-                    dataSource,
-                    """
-                    SELECT '累计销售额' AS 指标, SUM(total_amount) AS 数值, '元' AS 单位 FROM sales_order
-                    UNION ALL
-                    SELECT '活跃客户数' AS 指标, COUNT(*) AS 数值, '家' AS 单位 FROM customer
-                    UNION ALL
-                    SELECT '订单履约率' AS 指标, ROUND(100.0 * SUM(CASE WHEN order_status IN ('已完成','completed','delivered','fulfilled') THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 2) AS 数值, '%' AS 单位 FROM sales_order
-                    UNION ALL
-                    SELECT '库存周转天数' AS 指标, ROUND(AVG(turnover_days), 2) AS 数值, '天' AS 单位 FROM inventory
-                    """,
-                    userId);
-                if (rows != null && !rows.isEmpty()) {
-                    return rows;
-                }
-            } catch (Exception ex) {
-                log.warn("降级经营总览查询失败，使用空值模板: {}", ex.getMessage());
-            }
-        }
-
-        return List.of(
-            createOverviewRow("累计销售额", null, "元"),
-            createOverviewRow("活跃客户数", null, "家"),
-            createOverviewRow("订单履约率", null, "%"),
-            createOverviewRow("库存周转天数", null, "天")
-        );
-    }
-
-    private Map<String, Object> createOverviewRow(String metric, Object value, String unit) {
-        Map<String, Object> row = new LinkedHashMap<>();
-        row.put("指标", metric);
-        row.put("数值", value);
-        row.put("单位", unit);
-        return row;
-    }
-
-    private List<String> defaultSuggestions() {
-        return List.of(
-            "先给我一个经营总览",
-            "本月销售额是多少？",
-            "库存周转天数按仓库对比",
-            "上月审批平均时长是多少？"
-        );
     }
 
     @Data

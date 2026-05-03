@@ -611,23 +611,23 @@ const chartTrialPrompts = computed(() => {
   switch (family) {
     case 'line':
     case 'area':
-      return ['本月销售额趋势', '近30天活跃用户趋势', '上季度回款额趋势']
+      return ['本月核心指标趋势', '近30天核心指标趋势', '上季度核心指标趋势']
     case 'bar':
-      return ['本月销售额按区域对比', '本月毛利率按部门对比', '上月投诉量按产品对比']
+      return ['本月核心指标按维度对比', '本月核心指标按部门对比', '上月核心指标按产品对比']
     case 'pie':
     case 'treemap':
     case 'sunburst':
-      return ['本月销售额占比分析', '本月客户类型占比', '库存金额结构占比']
+      return ['本月核心指标占比分析', '本月分类占比', '核心指标结构占比']
     case 'scatter':
-      return ['销售额与毛利率相关性分析', '客户数与回款额相关性', '工时与交付及时率关联']
+      return ['核心指标相关性分析', '指标间相关性', '核心指标关联分析']
     case 'funnel':
       return ['本月销售漏斗转化分析', '线索到签约转化漏斗', '审批流程阶段漏斗']
     case 'gauge':
-      return ['本月毛利率达成情况', '订单履约率达成情况', '项目交付及时率达成情况']
+      return ['本月核心指标达成情况', '核心指标达成情况', '核心指标达成情况']
     case 'radar':
       return ['区域经营能力雷达对比', '团队绩效雷达分析', '产品综合表现雷达图']
     default:
-      return ['先给我一个经营总览', '本月销售额按区域对比', '本月毛利率趋势分析']
+      return ['先给我一个数据概览', '本月核心指标按维度对比', '本月核心指标趋势分析']
   }
 })
 
@@ -803,7 +803,7 @@ function openConversationWithChart() {
     path: '/chatbi/conversation',
     query: {
       chartType: selectedChartType.value,
-      q: encodeURIComponent('先给我一个经营总览')
+      q: encodeURIComponent('先给我一个数据概览')
     }
   })
 }

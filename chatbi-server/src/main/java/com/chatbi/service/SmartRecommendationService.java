@@ -105,7 +105,7 @@ public class SmartRecommendationService {
         List<String> recommendations = new ArrayList<>();
 
         // 1. 基于查询内容的推荐
-        if (currentQuery.contains("销售额") || currentQuery.contains("金额")) {
+        if (currentQuery.contains("核心指标") || currentQuery.contains("金额")) {
             recommendations.add("和上月对比如何？");
             recommendations.add("哪个地区贡献最大？");
             recommendations.add("增长趋势如何？");
@@ -161,10 +161,10 @@ public class SmartRecommendationService {
             similar.add(query.replace("地区", "渠道"));
         }
 
-        if (query.contains("销售额")) {
-            similar.add(query.replace("销售额", "订单数"));
-            similar.add(query.replace("销售额", "客单价"));
-            similar.add(query.replace("销售额", "利润"));
+        if (query.contains("核心指标")) {
+            similar.add(query.replace("核心指标", "订单数"));
+            similar.add(query.replace("核心指标", "客单价"));
+            similar.add(query.replace("核心指标", "利润"));
         }
 
         if (query.contains("本月")) {
@@ -189,9 +189,9 @@ public class SmartRecommendationService {
 
         // 这里应该分析表结构，生成推荐
         // 简化实现，返回通用推荐
-        recommendations.add("本月销售额是多少？");
-        recommendations.add("哪个地区销售额最高？");
-        recommendations.add("销售额趋势如何？");
+        recommendations.add("本月核心指标是多少？");
+        recommendations.add("哪个维度数据最高？");
+        recommendations.add("核心指标趋势如何？");
 
         return recommendations;
     }
@@ -229,7 +229,7 @@ public class SmartRecommendationService {
             String content = query.getQueryContent();
 
             // 提取关键词
-            if (content.contains("销售")) patterns.merge("销售", 1, Integer::sum);
+            if (content.contains("核心指标")) patterns.merge("核心指标", 1, Integer::sum);
             if (content.contains("地区")) patterns.merge("地区", 1, Integer::sum);
             if (content.contains("产品")) patterns.merge("产品", 1, Integer::sum);
             if (content.contains("趋势")) patterns.merge("趋势", 1, Integer::sum);
@@ -247,19 +247,19 @@ public class SmartRecommendationService {
         List<String> recommendations = new ArrayList<>();
 
         // 根据用户最常查询的内容生成推荐
-        if (patterns.getOrDefault("销售", 0) > 3) {
-            recommendations.add("本月销售额同比增长多少？");
-            recommendations.add("哪个产品销售额最高？");
+        if (patterns.getOrDefault("核心指标", 0) > 3) {
+            recommendations.add("本月同比增长多少？");
+            recommendations.add("哪个产品核心指标最高？");
         }
 
         if (patterns.getOrDefault("地区", 0) > 3) {
-            recommendations.add("各地区销售额对比");
+            recommendations.add("各地区核心指标对比");
             recommendations.add("哪个地区增长最快？");
         }
 
         if (patterns.getOrDefault("趋势", 0) > 2) {
-            recommendations.add("预测下月销售额");
-            recommendations.add("销售额波动分析");
+            recommendations.add("预测下月核心指标");
+            recommendations.add("核心指标波动分析");
         }
 
         return recommendations;
@@ -273,8 +273,8 @@ public class SmartRecommendationService {
 
         // 简化实现：找到相似用户的查询
         // 实际应该使用协同过滤算法
-        recommendations.add("其他用户也在查：本季度销售额");
-        recommendations.add("其他用户也在查：客户流失率");
+        recommendations.add("热门查询：本季度核心指标");
+        recommendations.add("热门查询：用户流失率");
 
         return recommendations;
     }
@@ -284,14 +284,14 @@ public class SmartRecommendationService {
      */
     private List<String> getDefaultRecommendations() {
         return List.of(
-            "本月销售额是多少？",
-            "哪个地区销售额最高？",
-            "销售额趋势如何？",
-            "哪个产品卖得最好？",
-            "客户数量有多少？",
-            "本月订单数是多少？",
-            "平均客单价是多少？",
-            "销售额同比增长多少？"
+            "本月核心指标是多少？",
+            "哪个维度数据最高？",
+            "核心指标趋势如何？",
+            "哪个分类表现最好？",
+            "总体数量是多少？",
+            "本月数据总量是多少？",
+            "平均值是多少？",
+            "同比增长多少？"
         );
     }
 

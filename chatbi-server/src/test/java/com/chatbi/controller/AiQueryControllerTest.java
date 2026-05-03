@@ -72,7 +72,7 @@ class AiQueryControllerTest {
             .andExpect(jsonPath("$.data.success").value(true))
             .andExpect(jsonPath("$.data.source").value("guided-recovery"))
             .andExpect(jsonPath("$.data.recovered").value(true))
-            .andExpect(jsonPath("$.data.data.length()").value(4));
+            .andExpect(jsonPath("$.data.data.length()").value(0));
     }
 
     @Test
@@ -88,7 +88,7 @@ class AiQueryControllerTest {
             .andExpect(jsonPath("$.data.success").value(true))
             .andExpect(jsonPath("$.data.source").value("guided-recovery"))
             .andExpect(jsonPath("$.data.recovered").value(true))
-            .andExpect(jsonPath("$.data.suggestions.length()").value(4));
+            .andExpect(jsonPath("$.data.suggestions.length()").value(1));
     }
 
     @Test

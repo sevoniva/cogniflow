@@ -181,7 +181,7 @@ class QueryControllerTest {
                 .content("{\"text\":\"最近组织情况咋样\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.metric").value("经营总览"))
+            .andExpect(jsonPath("$.data.metric").value("数据概览"))
             .andExpect(jsonPath("$.data.diagnosis.code").value("METRIC_NOT_RECOGNIZED"))
             .andExpect(jsonPath("$.data.suggestions").isArray())
             .andExpect(jsonPath("$.data.suggestions", hasSize(greaterThan(0))));
@@ -199,13 +199,15 @@ class QueryControllerTest {
         JsonNode root = new ObjectMapper().readTree(result.getResponse().getContentAsString());
         JsonNode data = root.path("data");
         String metric = data.path("metric").asText();
-        assertTrue("经营总览".equals(metric) || "研发工时利用率".equals(metric),
+        assertTrue("数据概览".equals(metric) || "研发工时利用率".equals(metric),
             "metric should be either guided fallback or direct R&D match");
 
-        if ("经营总览".equals(metric)) {
+        if ("数据概览".equals(metric)) {
             assertEquals("guided-discovery", data.path("source").asText());
-            assertEquals("研发效能场景", data.path("diagnosis").path("guidanceScenario").asText());
-            assertTrue(data.path("suggestions").toString().contains("研发工时利用率"));
+            assertEquals("综合分析场景", data.path("diagnosis").path("guidanceScenario").asText());
+            // 通用化后 fallback metrics 取自数据库中的 active 指标，test-data.sql 中预置了销售额/订单数/毛利率
+            assertTrue(data.path("suggestions").toString().contains("销售额") || data.path("suggestions").toString().contains("订单数") || data.path("suggestions").toString().contains("毛利率"),
+                "数据概览建议应包含 test-data 中的 active 指标");
         }
     }
 
@@ -232,11 +234,11 @@ class QueryControllerTest {
                 .content("{\"text\":\"请分析应收账款余额和应收账款周转天数\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.metric").value("经营总览"))
+            .andExpect(jsonPath("$.data.metric").value("数据概览"))
             .andExpect(jsonPath("$.data.source").value("guided-disambiguation"))
             .andExpect(jsonPath("$.data.diagnosis.code").value("AMBIGUOUS_METRIC"))
             .andExpect(jsonPath("$.data.summary", containsString("识别到多个可能指标")))
-            .andExpect(jsonPath("$.data.suggestions[0]", containsString("对比")))
+            .andExpect(jsonPath("$.data.suggestions[0]", containsString("是多少")))
             .andExpect(jsonPath("$.data.suggestions", hasSize(greaterThan(0))));
     }
 

@@ -502,9 +502,9 @@ const analysisSourceLabel = computed(() => {
   const source = result.value?.source || ''
   const labels: Record<string, string> = {
     llm: '外部大模型',
-    'overview-ai': '经营总览 + AI',
+    ''overview-ai': '数据概览 + AI' + AI',
     'business-insight-ai': '业务指标 + AI',
-    overview: '经营总览',
+    overview: '数据概览',
     'business-insight': '业务语义引擎',
     'guided-discovery': '指标引导',
     'guided-disambiguation': '指标澄清',
